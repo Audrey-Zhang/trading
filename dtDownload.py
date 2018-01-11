@@ -17,9 +17,20 @@ sys.setdefaultencoding('utf-8')
 
  
 from sqlalchemy import create_engine 
-#engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.8888@./invest")
-engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
+engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.9999@./invest")
+#engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
 cnx = engine.connect()
+
+tradingTM_A = [
+    [0,0,9,30,9,30],
+    [11,30,11,31,11,29],
+    [15,00,15,01,15,00]    
+    ]
+    
+def get_tradingMin():
+    global tradingTM_A
+    tmL = []
+    return tmL
 
 def check_existed(Circle,StockID):
     str_sql = 'select Stock_ID from db_status where '+ Circle + '= 1' 
@@ -84,8 +95,57 @@ def dl_M1(SymbolList):
     
     return True
 
-def gen_M1(dateStart, dateEnd, SymbolList):
-    
+def gen_1Min(dateStart, dateEnd, SymbolList):
+    for symbol in SymbolList:
+        if ~check_existed('Tick',symbol):
+            print 'Tick data have not ready!'
+            return False
+        str_sql = 'select * from Tick_' + symbol
+        d = pd.read_sql(str_sql,cnx)
+        
+        global tradingTM_A
+        for i,tm in enumerate(tradingTM_A):
+            if i == 0:
+                tmS = pd.to_datetime(tm[0]).time()
+                begin = time.time()
+                sd = d.time.apply(lambda x:pd.to_datetime(x).time() < tmS)
+                d.loc[sd,'time'] = str(tmS)
+                print 'tmS:',time.time() - begin,
+
+                tmE = pd.to_datetime(tm[1]).time()
+                tmS = pd.to_datetime(tradingTM_A[i+1][0]).time()
+                begin = time.time()
+                sd = d.time.apply(lambda x: (pd.to_datetime(x).time() > tmE) and (pd.to_datetime(x).time() < tmE))
+                d.loc[sd,'time'] = str(tmS)
+                print 'tmE1:',time.time() - begin,
+            elif i == len(tradingTM_A) -1:
+                
+            else:
+                
+        tmS = pd.to_datetime('09:30:00').time()
+        begin = time.time()
+        sd = d.time.apply(lambda x:pd.to_datetime(x).time() < tmS)
+        d.loc[sd,'time'] = str(tmS)
+        print 'tmS:',time.time() - begin,
+
+        d['time'] = d['date'] +' '+ d['time']
+        d['time'] = pd.to_datetime(d['time'])
+        d.index = d.time
+        price_df = d['price'].resample('1Min').ohlc()
+        vols=d['volume'].resample('1Min').sum()
+        vols=vols.dropna()
+        vol_df=pd.DataFrame(vols,columns=['volume'])
+        amounts=d['amount'].resample('1Min').sum()  
+        amounts=amounts.dropna()  
+        amount_df=pd.DataFrame(amounts,columns=['amount'])  
+        df = price_df.merge(vol_df,left_index = True,right_index=True).merge(amount_df,left_index = True, right_index=True)
+        
+        str_sql = 'D_' + symbol
+        df.to_sql(str_sql,cnx, if_exists = 'append',chunksize = 500)
+        
+        str_sql = 'update db_status set D = 1 where Stock_ID = ' +symbol
+        cnx.execute(str_sql) 
+        print 'D_'+ str(symbol)+' Done! D:'+''+',min:'
     return True
     
 def gen_D(SymbolList):
@@ -96,7 +156,7 @@ def gen_D(SymbolList):
             d = pd.read_sql(str_sql,cnx)
             d['time'] = d['date'] +' '+ d['time']
             d['time'] = pd.to_datetime(d['time'])
-            d = d.set_index('time')
+            d = d.set_index('time') #use df.set_index, By default yields a new object
             price_df = d['price'].resample('D').ohlc()
             vols=d['volume'].resample('D').sum()
             vols=vols.dropna()
