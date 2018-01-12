@@ -21,10 +21,11 @@ engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.9999@./invest")
 #engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
 cnx = engine.connect()
 
-tradingTM_A = [
-    [0,0,9,30,9,30],
-    [11,30,11,31,11,29],
-    [15,00,15,01,15,00]    
+#trading time period
+TMP = [
+    ['00:00:00','09:30:00','09:30:00'],
+    ['11:30:00','11:31:00','11:29:59'],
+    ['15:00:00','15:01:00','14:59:59']   
     ]
     
 def get_tradingMin():
@@ -95,38 +96,22 @@ def dl_M1(SymbolList):
     
     return True
 
-def gen_1Min(dateStart, dateEnd, SymbolList):
+def gen_1Min(SymbolList, dateEnd = None):
     for symbol in SymbolList:
-        if ~check_existed('Tick',symbol):
+        if not check_existed('Tick',symbol):
             print 'Tick data have not ready!'
             return False
         str_sql = 'select * from Tick_' + symbol
         d = pd.read_sql(str_sql,cnx)
+        d['tm'] = pd.to_datetime(d.time)
         
-        global tradingTM_A
-        for i,tm in enumerate(tradingTM_A):
-            if i == 0:
-                tmS = pd.to_datetime(tm[0]).time()
-                begin = time.time()
-                sd = d.time.apply(lambda x:pd.to_datetime(x).time() < tmS)
-                d.loc[sd,'time'] = str(tmS)
-                print 'tmS:',time.time() - begin,
-
-                tmE = pd.to_datetime(tm[1]).time()
-                tmS = pd.to_datetime(tradingTM_A[i+1][0]).time()
-                begin = time.time()
-                sd = d.time.apply(lambda x: (pd.to_datetime(x).time() > tmE) and (pd.to_datetime(x).time() < tmE))
-                d.loc[sd,'time'] = str(tmS)
-                print 'tmE1:',time.time() - begin,
-            elif i == len(tradingTM_A) -1:
+        global TMP
+        for tmp in TMP:
+            for i in range(2):
+                tmp[i] = pd.to_datetime(tmp[i])
+        for tmp in TMP:
+            d.loc[ ( d.tm.dt.time >= tmp[0].time() ) & ( d.tm.dt.time <tmp[1].time() ),'time'] = tmp[2]
                 
-            else:
-                
-        tmS = pd.to_datetime('09:30:00').time()
-        begin = time.time()
-        sd = d.time.apply(lambda x:pd.to_datetime(x).time() < tmS)
-        d.loc[sd,'time'] = str(tmS)
-        print 'tmS:',time.time() - begin,
 
         d['time'] = d['date'] +' '+ d['time']
         d['time'] = pd.to_datetime(d['time'])
@@ -139,14 +124,15 @@ def gen_1Min(dateStart, dateEnd, SymbolList):
         amounts=amounts.dropna()  
         amount_df=pd.DataFrame(amounts,columns=['amount'])  
         df = price_df.merge(vol_df,left_index = True,right_index=True).merge(amount_df,left_index = True, right_index=True)
-        
+        '''
         str_sql = 'D_' + symbol
         df.to_sql(str_sql,cnx, if_exists = 'append',chunksize = 500)
         
         str_sql = 'update db_status set D = 1 where Stock_ID = ' +symbol
         cnx.execute(str_sql) 
+        '''
         print 'D_'+ str(symbol)+' Done! D:'+''+',min:'
-    return True
+    return df
     
 def gen_D(SymbolList):
     for symbol in SymbolList:
