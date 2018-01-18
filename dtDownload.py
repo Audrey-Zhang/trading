@@ -124,14 +124,48 @@ def gen_1Min(SymbolList, dateEnd = None):
         amounts=amounts.dropna()  
         amount_df=pd.DataFrame(amounts,columns=['amount'])  
         df = price_df.merge(vol_df,left_index = True,right_index=True).merge(amount_df,left_index = True, right_index=True)
-        '''
-        str_sql = 'D_' + symbol
+        
+        str_sql = 'M1_' + symbol
         df.to_sql(str_sql,cnx, if_exists = 'append',chunksize = 500)
         
-        str_sql = 'update db_status set D = 1 where Stock_ID = ' +symbol
+        str_sql = 'update db_status set M1 = 1 where Stock_ID = ' +symbol
         cnx.execute(str_sql) 
-        '''
-        print 'D_'+ str(symbol)+' Done! D:'+''+',min:'
+        
+        print 'M1_'+ str(symbol)+' Done! M1:'+''+',min:'
+    return df
+    
+def gen_30Min(SymbolList, dateEnd = None):
+    for symbol in SymbolList:
+        if not check_existed('M1',symbol):
+            print 'Minute data have not ready!'
+            return False
+        str_sql = 'select * from M1_' + symbol
+        d = pd.read_sql(str_sql,cnx)
+        d.index = d.time
+
+        os = d['open'].resample('30Min').apply(firstIt)
+        hs = d['high'].resample('30Min').max()
+        ls = d['low'].resample('30Min').min()
+        cs = d['close'].resample('30Min').apply(lastIt)
+        price_df = pd.DataFrame(zip(os),columns=['O'],index = os.index)
+        price_df['H'] = hs
+        price_df['L'] = ls
+        price_df['C'] = cs        
+        vols=d['volume'].resample('30Min').sum()
+        vols=vols.dropna()
+        vol_df=pd.DataFrame(vols,columns=['volume'])
+        amounts=d['amount'].resample('1Min').sum()  
+        amounts=amounts.dropna()  
+        amount_df=pd.DataFrame(amounts,columns=['amount'])  
+        df = price_df.merge(vol_df,left_index = True,right_index=True).merge(amount_df,left_index = True, right_index=True)
+        
+        str_sql = 'M30_' + symbol
+        df.to_sql(str_sql,cnx, if_exists = 'append',chunksize = 500)
+        
+        str_sql = 'update db_status set M30 = 1 where Stock_ID = ' +symbol
+        cnx.execute(str_sql) 
+        
+        print 'M30_'+ str(symbol)+' Done! M30:'+''+',min:'
     return df
     
 def gen_D(SymbolList):
@@ -161,6 +195,20 @@ def gen_D(SymbolList):
         else:
             print 'Tick data have not ready!'
      
-    return True     
+    return True
+
+def firstIt(a):
+    if len(a)>0:
+        t = a[0]
+    else:
+        t = None
+    return t
+
+def lastIt(a):
+    if len(a)>0:
+        t = a[-1]
+    else:
+        t = None
+    return t
      
      
