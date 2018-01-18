@@ -14,8 +14,8 @@ import matplotlib.finance as mpf
 import matplotlib.ticker as mtk
 from sqlalchemy import create_engine 
 
-engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.9999@./invest")
-#engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
+#engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.9999@./invest")
+engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
 cnx = engine.connect()
 
 def get_k(stock_ID, cycle, tmStart = None, tmEnd = None ):
@@ -185,14 +185,103 @@ class Lv0Td(object):
                 zig = 0 
         return zig
             
+class PC(object):
+    def __init__(self,p1,p2):
+        self.sTmS = p1[0]
+        self.sTmE = p2[0]
+        self.sVS = p1[1]
+        self.sVE = p2[1]
+        self.drt = p1[2]
+
+        self.bH = 0.0
+        self.bL = 0.0
+        self.bLv_ct = 0
+        self.bTmL = []
+        self.bHL = []
+        self.bLL = []
+
+    def printpc(self):
+        print self.sTmS,' ',self.drt,' ',self.bLv_ct,
+    
+    def updateB(self,p):
+        if self.bLv_ct == 0:
+            self.bTmL = [p[0]]
+            self.bHL = self.bH = [max(self.sVE,p[1])]
+            self.bLL = self.bL = [min(self.sVE,p[1])]
+        else:
+            self.bTmL.append(p[0])
+            if p[2] == -1:
+                self.bHL.append(min(self.bHL[-1],p[1]))
+                self.bLL.append(self.bLL[-1])
+            elif p[2] == 1:
+                self.bLL.append(max(self.bHL[-1],p[1]))
+                self.bHL.append(self.bLL[-1])
+            else:
+                print 'What!' 
+        self.bLv_ct += 1
+        print 'updateB',
+        self.printpc()
+        return True 
+        
+    def reset(self,p):
+        f = 0
+        point1 = 0
+        if self.bLv_ct > 0:
+            self.bLv_ct -= 1
+            self.bTmL.pop()
+            self.bHL.pop()
+            self.bLL.pop()
+            f,point1 = self.check(p)
+            if f == 1:
+                print 'reset PC',
+                self.printpc()                 
+                return f,p1
+            print 'reset b',
+            self.printpc()    
+            self.updateB(p)
+        else:
+            self.sTmE = p[0]
+            self.sVE = p[1]
+            print 'reset s',
+            self.printpc()    
+        return f,point1
+
+    def check(self,p):
+        flag = 0
+        point1 = 0.0
+        if self.bLv_ct > 0:
+            if (p[2] == -1) and (p[1] > self.bHL[-1]):
+                flag = 1
+                point1 = [self.bTmL[-1],self.bLL[-1],1]
+            elif (p[2] == 1) and (p[1] < self.bLL[-1]):
+                flag = 1
+                point1 = [self.bTmL[-1],self.bHL[-1],-1]
+        else:
+            if (p[2] == -1) and (p[1] > self.sVS):
+                flag = -1
+                point1 = [self.sTmE,self.sVE,1]
+            elif (p[2] == 1) and (p[1] < self.sVS):
+                flag = -1
+                point1 = [self.sTmE,self.sVE,-1]
             
+        return flag, point1
+        
+    def addB(self,p):
+        self.bLv_ct =+ 1
+        self.bTmL.append(p[0])
+        self.bHL.append(self.bHL[-1])
+        self.bLL.append(self.bLL[-1])
+        return True
+         
 # =====================================================================
 k_Df,dtCnt = get_k('600438','M30')
+dtCnt = 200
 IdxL = k_Df.index.tolist()
 firstk = k_Df.iloc[0]
 
 stdk = Stdk(firstk.T)
 Lv0 = Lv0Td(firstk.T)
+PCL =[]
 
 for i in np.arange(1,dtCnt):
     begin = time.time()
@@ -206,6 +295,33 @@ for i in np.arange(1,dtCnt):
         Lv0.update(stdk,k)
         stdk.nflag = 0
     print i,'Lv0:',time.time() - begin
+    
+    if (Lv0.nflag == 1) & (len(Lv0.df) ==2 ):
+        p1 = [Lv0.df.index[0],Lv0.df.V[0],Lv0.df.drt[0]]        
+        p2 = [Lv0.df.index[1],Lv0.df.V[1],Lv0.df.drt[1]]
+        tmpPC = PC(p1,p2)
+        PCL=[tmpPC]
+    if (Lv0.nflag == 1) & (len(PCL) > 0):
+        p = [Lv0.df.index[-1],Lv0.df.V[-1],Lv0.df.drt[-1]]           
+        f,p1 = PCL[-1].check(p)
+        if f == 1:
+            tmpPC = PC(p1,p)
+            PCL.append(tmpPC)
+        else:
+            PCL[-1].updateB(p)
+     
+    elif (Lv0.nflag == -1) & (len(PCL) > 0):
+        p = [Lv0.df.index[-1],Lv0.df.V[-1],Lv0.df.drt[-1]] 
+        f,p1 =PCL[-1].reset(p)
+        if f == 1:
+            PCL.pop()
+            PCL[-1].addB(p1)
+            tmpPC = PC(p1,p)
+            PCL.append(tmpPC)
+        
+        
+        
+    Lv0.nflag = 0
     
     
 '''

@@ -17,8 +17,8 @@ sys.setdefaultencoding('utf-8')
 
  
 from sqlalchemy import create_engine 
-engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.9999@./invest")
-#engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
+#engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.9999@./invest")
+engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
 cnx = engine.connect()
 
 #trading time period
@@ -147,10 +147,10 @@ def gen_30Min(SymbolList, dateEnd = None):
         hs = d['high'].resample('30Min').max()
         ls = d['low'].resample('30Min').min()
         cs = d['close'].resample('30Min').apply(lastIt)
-        price_df = pd.DataFrame(zip(os),columns=['O'],index = os.index)
-        price_df['H'] = hs
-        price_df['L'] = ls
-        price_df['C'] = cs        
+        price_df = pd.DataFrame(zip(os),columns=['open'],index = os.index)
+        price_df['high'] = hs
+        price_df['low'] = ls
+        price_df['close'] = cs        
         vols=d['volume'].resample('30Min').sum()
         vols=vols.dropna()
         vol_df=pd.DataFrame(vols,columns=['volume'])
