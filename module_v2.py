@@ -14,8 +14,8 @@ import matplotlib.finance as mpf
 import matplotlib.ticker as mtk
 from sqlalchemy import create_engine 
 
-#engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.9999@./invest")
-engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
+engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.9999@./invest")
+#engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
 cnx = engine.connect()
 
 def get_k(stock_ID, cycle, tmStart = None, tmEnd = None ):
@@ -235,7 +235,7 @@ class PC(object):
             if f == 1:
                 print 'reset PC',
                 self.printpc()                 
-                return f,p1
+                return f,point1
             print 'reset b',
             self.printpc()    
             self.updateB(p)
@@ -248,7 +248,7 @@ class PC(object):
 
     def check(self,p):
         flag = 0
-        point1 = 0.0
+        point1 = [0.0,0,0]
         if self.bLv_ct > 0:
             if (p[2] == -1) and (p[1] > self.bHL[-1]):
                 flag = 1
@@ -272,10 +272,53 @@ class PC(object):
         self.bHL.append(self.bHL[-1])
         self.bLL.append(self.bLL[-1])
         return True
-         
+
+# =================Print Func==========================================
+def pPCstick(pclist,kdf):
+    IdxL = kdf.index    
+    stickpl = []
+    for i in pclist:
+        tmp = [i.sTmS,i.sVS]
+        stickpl.append(tmp)
+        tmp = [i.sTmE,i.sVE]
+        stickpl.append(tmp)
+    df = pd.DataFrame(np.zeros(len(IdxL)),index = IdxL)
+    pcsdf = pd.DataFrame(stickpl,columns = ['Tm','V'])
+    pcsdf.index = pcsdf.Tm
+    df = df.merge(pcsdf,how = 'left',left_index = True,right_index = True) 
+    print df.index
+    tmrl = []
+    for i in pclist:
+        tmp = [i.sTmS,i.sTmE]
+        tmrl.append(tmp)
+    dff = pd.DataFrame()
+    for i in range(len(tmrl)):
+        tmp = df.ix[tmrl[i][0]:tmrl[i][1],'V'].interpolate()
+        if len(dff)==0:
+            dff = tmp
+        else:    
+            dff = dff.append(tmp)
+    dff = pd.DataFrame(dff,index = dff.index)
+    df = df.merge(dff,how = 'left',left_index = True,right_index = True)
+    printdf = df.pop('V_y')
+    return printdf
+    
+def pPCblock(pclist,kdf):
+    
+    return True
+    
+def pLv0(lv_obj,kdf):
+    IdxL = kdf.index
+    l =lv_obj.df[['V','drt']]
+    df = pd.DataFrame(np.zeros(len(IdxL)),index = IdxL)
+    df = df.merge(l,how = 'left',left_index = True,right_index = True)
+    lvS = df.V.interpolate()       
+    
+    return lvS
+    
 # =====================================================================
 k_Df,dtCnt = get_k('600438','M30')
-dtCnt = 200
+#dtCnt = 500
 IdxL = k_Df.index.tolist()
 firstk = k_Df.iloc[0]
 
@@ -317,25 +360,28 @@ for i in np.arange(1,dtCnt):
             PCL.pop()
             PCL[-1].addB(p1)
             tmpPC = PC(p1,p)
-            PCL.append(tmpPC)
-        
+            PCL.append(tmpPC)      
         
         
     Lv0.nflag = 0
     
     
 '''
+dtCnt = 500
+kk = k_Df[0:dtCnt]
+lv0s = pLv0(Lv0,kk)
+pcss = pPCstick(PCL,kk)
 stdrdf = stddf.loc[stddf.drt == 1,['O','H','L','C']]
 stdgdf = stddf.loc[stddf.drt == -1,['O','H','L','C']]
 drawpd = pd.merge(k_Df,stdrdf,on = 'Tm',how = 'left',suffixes = ['_k','_r'])
 drawdf = pd.merge(drawpd,stdgdf, on='Tm',how= 'left')
 fig,ax = plt.subplots(figsize = (100,40))
-mpf.candlestick2_ochl(ax, k_Df.O,k_Df.H,k_Df.L,k_Df.C, width=0.6, colorup='w', colordown = 'w', alpha=0.15)
+mpf.candlestick2_ochl(ax, kk.O,kk.H,kk.L,kk.C, width=0.6, colorup='w', colordown = 'w', alpha=0.15)
 IdxS = range(0,dtCnt)
 ax.vlines(IdxS,drawdf.L_r,drawdf.H_r,color = 'r',lw = 5)
 ax.vlines(IdxS,drawdf.L,drawdf.H,color = 'g',lw = 5)
-drlvdf.V_y = drlvdf.V_y.interpolate()
-ax.plot(drlvdf.V_y.tolist())
+ax.plot(pcss.tolist())
+ax.plot(lv0s.tolist())
 ax.set_xlim(left = 0.0)
 plt.savefig('000.png')
 '''
