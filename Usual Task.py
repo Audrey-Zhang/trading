@@ -12,19 +12,21 @@ import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
-#from sqlalchemy import create_engine 
+from sqlalchemy import create_engine 
 #engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.8888@./invest")
-#cnx = engine.connect()
+engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
+cnx = engine.connect()
 
 # ============my lib===============
 import dtDownload as dtd
 
-dts = '2017-12-01'
-dte = '2017-12-28'
-sbL = ['300231','300290','002279','603138','603881','300608','300609','300166','300541','300245','000717','603322','000004','002288','002225','002886','002310','600516','000735','002320','600555','000886','600717']
+dts = '2018-01-01'
+dte = '2018-03-09'
+#sbL = ['300231','300290','002279','603138','603881','300608','300609','300166','300541','300245','000717','603322','000004','002288','002225','002886','002310','600516','000735','002320','600555','000886','600717']
+sbL = ['002177']
 
 dtd.dl_Tick(dts,dte,sbL)
-dtd.gen_D(sbL)
+#dtd.gen_D(sbL)
 '''
 import dtDownload as dtd
 sbL = ['600438']
