@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 import matplotlib.finance as mpf
 import matplotlib.ticker as mtk
 
-engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.8888@./invest")
-#engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
+#engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.8888@./invest")
+engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
 cnx = engine.connect()
 
 k_Df = pd.DataFrame()
@@ -773,7 +773,7 @@ def lineDt(TmL,v,kDf):
     
 # ==========run sectionn=====================================
 
-get_k('600438','D')
+get_k('600438','M30')
 init_analysis()
 bigk = gen_bigk_spec(k_Df,80)
 

@@ -68,7 +68,7 @@ def dl_Tick(dateStart, dateEnd, SymbolList):
             str_date=str(r[0])
             str_sql = 'tick_' + symbol
             try:
-                d = ts.get_tick_data(symbol, str_date, pause = 0.1)
+                d = ts.get_tick_data(symbol, str_date, pause = 2)
                 d['date'] = r[0]
                 print str(len(d)),
             except IOError,msg:

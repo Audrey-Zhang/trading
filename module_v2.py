@@ -14,8 +14,8 @@ import matplotlib.finance as mpf
 import matplotlib.ticker as mtk
 from sqlalchemy import create_engine 
 
-engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.9999@./invest")
-#engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
+#engine = create_engine("mssql+pymssql://CENTALINE\zhangyun29:sh.9999@./invest")
+engine = create_engine("mssql+pymssql://sa:Pass0330@./invest")
 cnx = engine.connect()
 
 def get_k(stock_ID, cycle, tmStart = None, tmEnd = None ):

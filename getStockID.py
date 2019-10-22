@@ -30,4 +30,4 @@ for i in range(len(df)):
 Stock_ID_df['Stock_ID']=Stock_ID_df.index
 
 
-Stock_ID_df.to_sql('db_status',cnx,if_exists = 'append',index = False,chunksize = 500)
+Stock_ID_df.to_sql('dt_status',cnx,if_exists = 'append',index = False,chunksize = 500)
