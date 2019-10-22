@@ -1,0 +1,55 @@
+[
+	{"level" : 0,
+	"Stick" : {"NEW" : {   "method" : ["update2", "update2"],
+							"obj_p" : ["m.Lv1_L[-1]", "m.PCLv0_L[0]"],
+							"param": ["",""]},
+				"PEAK" :  { "method" : ["updateLastSt"],
+							"obj_p" : ["m.PCLv0_L[0]"],
+							"param":  [""]},
+				"LVUPD" : {  "method" : ["updatePeakP"],
+							"obj_p" : ["m.Lv1_L[-1]"],
+							"param":  ["k_bar=m.dt[-1]"]}
+				},
+	"Pair":   {"NEW":  {"method" : ["updateAll"],
+						"obj_p" : ["m.PT01Lv0_L"],
+						"param": ["m.PLv0_L[-1]"]}
+				}
+	},
+	{"level" : 1,		
+	"TrendLv1" : {"NEW" : {   "method" : ["update2", "update2"],
+							"obj_p" : ["m.Lv2_L[-1]", "m.PCLv1_L[0]"],
+							"param": ["",""]},
+				"PEAK" :  { "method" : ["updateLastSt"],
+							"obj_p" : ["m.PCLv1_L[0]"],
+							"param":  [""]},
+				"LVUPD" : {  "method" : ["updatePeakP"],
+							"obj_p" : ["m.Lv2_L[-1]"],
+							"param":  ["k_bar=m.dt[-1]"]   }
+				},	
+	"Pair":   {"NEW":  {"method" : ["updateAll"],
+						"obj_p" : ["m.PT01Lv1_L"],
+						"param": ["m.PLv1_L[-1]"]}
+				}
+			   
+	},
+	{"level" : 2,		
+	"TrendLv2" : {"NEW" : {   "method" : ["update2", "update2"],
+							"obj_p" : ["m.Lv3_L[-1]", "m.PCLv2_L[0]"],
+							"param": ["",""]},
+				"LVUPD" : {  "method" : ["updatePeakP"],
+							"obj_p" : ["m.Lv3_L[-1]"],
+							"param":  ["k_bar=m.dt[-1]"]   }
+				}		
+			   
+	},
+	{"level" : 3,		
+	"TrendLv3" : {"NEW" : {   "method" : [""],
+							"obj_p" : [""],
+							"param": [""]},
+				"LVUPD" : {  "method" : [""],
+							"obj_p" : [""],
+							"param":  [""]   }
+				}		
+			   
+	}
+]
