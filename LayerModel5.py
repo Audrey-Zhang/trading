@@ -208,6 +208,8 @@ class Point:
             return s.start
         elif method =='end':
             return s.end
+        elif method =='peak':
+            return s.peak
 
     def is_peak(self, drt, ref_point):
         if drt == 1 and self.V > ref_point.V:
@@ -482,9 +484,9 @@ class Trend(object):
             treated.mp.append(i)
             #treated.updatePp(treated.stick_stack[-1])
             flag, treated = treated.update1Stick()
-        self.sendEvent(flag)
-        print('Lv{}.update2(): flag:{}, treated.status:{},treaded.drt:{},treated.mp:{}'.\
-            format(self.level, flag, treated.status, treated.drt, treated.mp))
+            print('Lv{}.update2(): flag:{}, treated.status:{},treaded.drt:{},treated.mp:{}'.\
+                format(self.level, flag, treated.status, treated.drt, treated.mp))
+        self.sendEvent(flag)  #？？don't need to send for each
         return flag
 
     def update1Stick(self):
@@ -630,7 +632,7 @@ class Trend(object):
         update self.peak OR self.pp
         '''
         flag = 0
-        if k_bar is not None: # update self.peak
+        if k_bar is not None: # update self.peak  # not used!!
             if self.drt == 1 and k_bar[1] >= self.peak.V:
                 self.peak = Point.getPoint('H', k_bar)
                 
@@ -643,13 +645,25 @@ class Trend(object):
             stick = self.stick_stack[st_idx_in_ss]
             print('{}.updatedPeakP(st_idx_in_ss):last_st_start:{},peak{},drt:{}'.format(self.__class__.__name__,
                 stick, self.peak, self.drt))
-            if stick.drt == self.drt:
-                return flag
-            elif stick.start.is_peak(self.drt, self.peak):
-                print('{}.updatedPeakP(st_idx_in_ss):FIND PEAK'.format(self.__class__.__name__))
-                self.peak = stick.start
-                self.pp = self.stick_stack.index(stick)
-                flag = 1
+   
+            try:
+                self.pp
+            except:
+                if stick.drt != self.drt: 
+                    self.peak = stick.start
+                    self.pp = self.stick_stack.index(stick)
+                    flag = 1
+                else:
+                    pass
+
+            else:
+                if stick.drt == self.drt:
+                    return flag
+                elif stick.start.is_peak(self.drt, self.peak):
+                    print('{}.updatedPeakP(st_idx_in_ss):FIND PEAK'.format(self.__class__.__name__))
+                    self.peak = stick.start
+                    self.pp = self.stick_stack.index(stick)
+                    flag = 1                
 
         return flag
 
@@ -1341,7 +1355,7 @@ class PatternPair(object):
     def open_position(self):
         kw = {'drt': self.obj_list[0].drt, 'level': self.level, 'TmSig': self.m.dt[-1][4]
              ,'pattern_name':self.__class__.__name__, 'objs':self.obj_list
-               , 'open_event':{'level_num':self.level, 'obj_name': 'Stick', 'event_name':'NEW'}
+               , 'open_event':{'level_num':0, 'obj_name': 'Stick', 'event_name':'NEW'}
               , 'open_action': {'method':'open_position', 'param':'m.dt[-1]'}}
         Position(kw)
     

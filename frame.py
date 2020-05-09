@@ -182,14 +182,14 @@ class Position(object):
     def __init__(self, kw):
         # kw = {'drt': self.obj_list[0].drt, 'level': self.level, 'TmSig': m.dt[-1][4]
         #     ,'pattern_name':self.__class__.__name__, 'objs':self.obj_list
-        #       , 'open_event':{'level_num':self.level, 'obj_name': 'Stick', 'event_name':'NEW'}
+        #       , 'open_event':{'level_num':self.level=>>0！！！, 'obj_name': 'Stick', 'event_name':'NEW'}
         #      , 'open_action': {'method':'open_position', 'param':'m.dt[-1]'}}
         self.drt = kw['drt']
         self.TmSig = kw['TmSig']
         self.pattern = kw['pattern_name']
         self.pattern_objs = kw['objs']
         self.open_action = kw['open_action']
-        self.open_event = kw['open_event']
+        self.open_event = {'level_num':0, 'obj_name': 'Stick', 'event_name':'NEW'}
         # 判断open_position frozen range
         
         self.L.append(self)
