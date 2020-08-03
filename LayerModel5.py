@@ -1129,6 +1129,9 @@ class Pair(object):
         if values[8]*values[0] > 3 and values[10] < 0.6:
             values[15] = 1      
         
+        
+
+
         values = list(values)
         features = {k:v for k,v in zip(feature_name_list, values)}
         return features
@@ -1485,5 +1488,25 @@ class PatternPair(object):
         
 
  
+class Signal(object):
 
+class Signal001(Singal):
+    L = []
+    m = Market()
+    type = '001'
 
+    def __init__(self, tm):
+        self.TmS = tm
+        self.status = 1
+    
+    @classmethod
+    def newSignal(cls, **kwargs): 
+        new_signal = cls.__new__(cls)
+        
+        new_signal.TmS = kwargs['tm']
+        new_signal.HP = kwargs['HP']
+        new_signal.LP_L = kwargs['LP_L']
+        snew_signal.status = 1
+        
+        cls.L.append(new_signal)
+        return None
