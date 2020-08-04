@@ -1129,6 +1129,9 @@ class Pair(object):
         if values[8]*values[0] > 3 and values[10] < 0.6:
             values[15] = 1      
         
+        
+
+
         values = list(values)
         features = {k:v for k,v in zip(feature_name_list, values)}
         return features
@@ -1485,5 +1488,99 @@ class PatternPair(object):
         
 
  
+#class Signal(object):
+
+class Signal001(object):
+    L = []
+    m = Market()
+    type = '001'
+
+    def __init__(self):
+        self.L = self.m.SIG_L
+        self.status = 0
+        self.L.append(self)
+    
+    @classmethod
+    def is_new(cls):
+        flag = 0
+        for i in list(range(cls.m.layer))[::-1]:
+            if i == 0:
+                #return flag
+                break
+            HL_limit = cls.m.findList('pair', i)[-1].ccHL[2:]
+            for j in list(range(i-1))[::-1]:
+                if len(cls.m.findList('pair', j)) > 1:
+                    HL_pair = [cls.m.findList('pair', j)[-2].ccHL[2:]]
+                    HL_pair.append(cls.m.findList('pair', j)[-1].ccHL[2:])
+
+                    #小级别Pair是否破大级别Pair的边界
+                    drt, con1 = cls.is_puncture(HL_limit, HL_pair)
+
+                    # 小级别Pair是否破线方向级进
+                    con2 = cls.is_step(HL_pair, drt)
+
+                    if con1*con2 != 0:
+                        flag = 1
+                        new_dict = {'TmS': cls.m.TmIdx[-1],
+                        'drt': drt,
+                        'LLayer': j,
+                        'HP': cls.m.findList('pair', i)[-1]}
+                        cls.newSignal(**new_dict)
+                        
+
+        return flag
+    
+    @staticmethod
+    def is_puncture(HL_limit, HL_pair):
+        flag = 0
+        if max(HL_pair[0][0], HL_pair[1][0]) > max(HL_limit):
+            drt = 1
+            flag = 1
+        elif min(HL_pair[0][1], HL_pair[1][1]) < min(HL_limit):
+            drt, flag = -1,1
+        else:
+            drt = 0
+        return drt, flag
+
+    @staticmethod
+    def is_step(HL_pair, drt):
+        flag = 0
+        if drt == 1 and HL_pair[0][0] < HL_pair[1][0]:
+            flag = 1
+        elif drt == -1 and HL_pair[0][1] > HL_pair[1][1]:
+            flag = 1
+        return flag
+
+    @staticmethod
+    def is_overlap(range01, range02):
+        flag = 0
+        if range01[0] < range02[1] or range01[0] > range02[0]:
+            flag = 1
+        return flag
 
 
+    @classmethod
+    def updateAll(cls):
+        cls.is_new()
+        return None
+
+    @classmethod
+    def newSignal(cls, **kwargs): 
+        new_signal = cls.__new__(cls)
+        
+        new_signal.TmS = kwargs['TmS']
+        new_signal.TmE = None
+        new_signal.drt = kwargs['drt']
+        new_signal.LLayer = kwargs['LLayer']
+        new_signal.HP = kwargs['HP']
+        new_signal.status = 1
+        new_signal.HL_limit = new_signal.HP.ccHL[2:]
+        
+        cls.L.append(new_signal)
+        cls.sendSignal()
+        return None
+
+    @classmethod
+    def sendSignal(cls):
+        pass
+        return None
