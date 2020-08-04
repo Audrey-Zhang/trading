@@ -121,6 +121,7 @@ class Market(object):
             for j, obj in enumerate(obj_name_list):
                 exec('self.' + obj+str(i)+'_L = []') 
                 exec('self.obj_list[obj_name['+str(j)+']]['+str(i)+'] = self.' + obj+str(i)+'_L')
+        self.SIG_L = []
         self.CenterStrict_LD = {}
         self.position = []
 
