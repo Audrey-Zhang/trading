@@ -1141,7 +1141,8 @@ class Pair(object):
         H = max(st_2nd.start.V, st_2nd.peak.V )
         L = min(st_2nd.start.V, st_2nd.peak.V )
         return H, L
-    
+        
+
     def distr(self, st_list=None):
         bin_cnt = self.m.bin_cnt
         if st_list is None:
@@ -1195,6 +1196,7 @@ class Pair(object):
     # ============================= classmethod =========================================
     @classmethod
     def newPair(cls, st_idx):
+        cls.L[-1].distr()
         new_pair = cls.__new__(cls)
         cls.L.append(new_pair)
 
@@ -1496,13 +1498,35 @@ class Signal001(object):
     type = '001'
 
     def __init__(self):
-        self.L = self.m.SIG_L
+        self.L.append(self)
         self.status = 0
         self.L.append(self)
+
+        self.TmS = 0
+        self.TmE = None
+        self.drt = 0
+        self.LLayer = 0
+        self.HP = 0
+        self.HL_limit = 0
     
+    def __repr__(self):
+        discription = 'SIG001{0.LLayer!r}(TmS:{0.TmS!r}, {0.drt!r}, {0.HP!r}, {0.HL_limit!r})'.format(self)  
+        return  discription
+
+
     @classmethod
     def is_new(cls):
         flag = 0
+
+        if cls.not_prepared():
+            print('Not Prepared!!!!')
+            return flag 
+
+        # 计算所需对象的属性
+        for i in list(range(cls.m.layer)):
+            pl = cls.m.findList('pair', i)
+            pl[-1].distr()
+
         for i in list(range(cls.m.layer))[::-1]:
             if i == 0:
                 #return flag
@@ -1512,6 +1536,7 @@ class Signal001(object):
                 if len(cls.m.findList('pair', j)) > 1:
                     HL_pair = [cls.m.findList('pair', j)[-2].ccHL[2:]]
                     HL_pair.append(cls.m.findList('pair', j)[-1].ccHL[2:])
+                    print(HL_pair)
 
                     #小级别Pair是否破大级别Pair的边界
                     drt, con1 = cls.is_puncture(HL_limit, HL_pair)
@@ -1521,7 +1546,8 @@ class Signal001(object):
 
                     if con1*con2 != 0:
                         flag = 1
-                        new_dict = {'TmS': cls.m.TmIdx[-1],
+                        print('New SIG!!!')
+                        new_dict = {'TmS': cls.m.TmIdx,
                         'drt': drt,
                         'LLayer': j,
                         'HP': cls.m.findList('pair', i)[-1]}
@@ -1531,7 +1557,7 @@ class Signal001(object):
         return flag
     
     @staticmethod
-    def is_puncture(HL_limit, HL_pair):
+    def is_puncture(HL_limit, HL_pair):  # 穿刺
         flag = 0
         if max(HL_pair[0][0], HL_pair[1][0]) > max(HL_limit):
             drt = 1
@@ -1558,6 +1584,12 @@ class Signal001(object):
             flag = 1
         return flag
 
+    @classmethod
+    def not_prepared(cls):
+        ll = cls.m.findList('st', cls.m.layer - 1)
+        if len(ll) < 2:
+            return True 
+        return False
 
     @classmethod
     def updateAll(cls):
