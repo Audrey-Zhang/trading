@@ -1315,7 +1315,7 @@ class PairChain(object):
 
     def regSignal(self):
         kw = {'level_num':self.level, 'obj_name': self.sig_name, 'event_name':'NEW'}
-        EventFactory.regSignal(kw)
+        EventFactory.regSignal(**kw)
         return None
 
 class PatternPair(object):
@@ -1458,7 +1458,7 @@ class PatternPair(object):
         
         kw = {'level_num':self.level, 'obj_name': obj_str, 'event_name':'NEW',
               'obj_p':self.__class__.__name__, 'method':'updateAll', 'param':''}
-        EventFactory.regAction(kw)
+        EventFactory.regAction(**kw)
         return None
     
     def calChart(self):
@@ -1495,6 +1495,7 @@ class PatternPair(object):
 class Signal001(object):
     L = []
     m = Market()
+    ef = EventFactory()
     type = '001'
 
     def __init__(self):
@@ -1508,6 +1509,7 @@ class Signal001(object):
         self.LLayer = 0
         self.HP = 0
         self.HL_limit = 0
+        self.regAction()
     
     def __repr__(self):
         discription = 'SIG001{0.LLayer!r}(TmS:{0.TmS!r}, {0.drt!r}, {0.HP!r}, {0.HL_limit!r})'.format(self)  
@@ -1522,36 +1524,33 @@ class Signal001(object):
             print('Not Prepared!!!!')
             return flag 
 
-        # 计算所需对象的属性
-        for i in list(range(cls.m.layer)):
-            pl = cls.m.findList('pair', i)
-            pl[-1].distr()
-
         for i in list(range(cls.m.layer))[::-1]:
             if i == 0:
                 #return flag
                 break
-            HL_limit = cls.m.findList('pair', i)[-1].ccHL[2:]
+            elif len(cls.m.findList('pairchain', i)[0].cL[0]) < 2:
+                continue
+
+            HL_limit = cls.m.findList('pairchain', i)[0].cL[0][-1].ccHL[2:]
             for j in list(range(i-1))[::-1]:
-                if len(cls.m.findList('pair', j)) > 1:
-                    HL_pair = [cls.m.findList('pair', j)[-2].ccHL[2:]]
-                    HL_pair.append(cls.m.findList('pair', j)[-1].ccHL[2:])
-                    print(HL_pair)
+                HL_pair = [cls.m.findList('pairchain', j)[0].cL[0][-2].ccHL[2:]]
+                HL_pair.append(cls.m.findList('pairchain', j)[0].cL[0][-1].ccHL[2:])
 
-                    #小级别Pair是否破大级别Pair的边界
-                    drt, con1 = cls.is_puncture(HL_limit, HL_pair)
+                #小级别Pair是否破大级别Pair的边界
+                drt, con1 = cls.is_puncture(HL_limit, HL_pair)
 
-                    # 小级别Pair是否破线方向级进
-                    con2 = cls.is_step(HL_pair, drt)
+                # 小级别Pair是否破线方向级进
+                con2 = cls.is_step(HL_pair, drt)
 
-                    if con1*con2 != 0:
-                        flag = 1
-                        print('New SIG!!!')
-                        new_dict = {'TmS': cls.m.TmIdx,
-                        'drt': drt,
-                        'LLayer': j,
-                        'HP': cls.m.findList('pair', i)[-1]}
-                        cls.newSignal(**new_dict)
+                if con1*con2 != 0:
+                    flag = 1
+                    print('New SIG!!!')
+                    new_dict = {'TmS': cls.m.TmIdx,
+                    'drt': drt,
+                    'LLayer': j,
+                    'HP': cls.m.findList('pair', i)[-1]}
+                    cls.newSignal(**new_dict)
+                    print(HL_limit, HL_pair)
                         
 
         return flag
@@ -1586,7 +1585,7 @@ class Signal001(object):
 
     @classmethod
     def not_prepared(cls):
-        ll = cls.m.findList('st', cls.m.layer - 1)
+        ll = cls.m.findList('pairchain', cls.m.layer - 2)[0].cL[0]
         if len(ll) < 2:
             return True 
         return False
@@ -1616,3 +1615,52 @@ class Signal001(object):
     def sendSignal(cls):
         pass
         return None
+
+    @classmethod
+    def regAction(cls):
+        signal_methods = []
+        signal_methods.append({
+            'level_num': 0,
+            'obj_name': 'Stick',
+            'event_name': 'NEW',
+            'obj_p': 'm.PLv0_L[-1]',
+            'method': 'distr',
+            'param': ''
+        })
+        signal_methods.append({
+            'level_num': 1,
+            'obj_name': 'TrendLv1',
+            'event_name': 'NEW',
+            'obj_p': 'm.PLv1_L[-1]',
+            'method': 'distr',
+            'param': ''
+        })
+        signal_methods.append({
+            'level_num': 2,
+            'obj_name': 'TrendLv2',
+            'event_name': 'NEW',
+            'obj_p': 'm.PLv2_L[-1]',
+            'method': 'distr',
+            'param': ''
+        })
+        signal_methods.append({
+            'level_num': 3,
+            'obj_name': 'TrendLv3',
+            'event_name': 'NEW',
+            'obj_p': 'm.PLv3_L[-1]',
+            'method': 'distr',
+            'param': ''
+        })
+        signal_methods.append({
+            'level_num': 0,
+            'obj_name': 'Stick',
+            'event_name': 'NEW',
+            'obj_p': 'm.SIG_L[0]',
+            'method': 'updateAll',
+            'param': ''
+        })
+        for m in signal_methods:
+            cls.ef.regAction(**m)
+        return None
+
+       

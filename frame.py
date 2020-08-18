@@ -30,8 +30,9 @@ class EventFactory(object):
     event_config ={'NEWLV': ['self.updateHLv()', 'self.findBigStick()'],
     'LVUPD': ['self.updateLvBybar()']}
 
-    def __init__(self, f):
-        self.read_config(f)
+    def __init__(self, f=None):
+        if f is not None:
+            self.read_config(f)
         
     def play(self, event):
         
@@ -56,22 +57,21 @@ class EventFactory(object):
             cls.event_config = json.load(f)
             
     @classmethod
-    def regAction(cls, dd):
-        # exception 
+    def regAction(cls,  **kwargs):
         ###
 
-        actions = cls.event_config[dd['level_num']][dd['obj_name']][dd['event_name']]
-        actions['obj_p'].append(dd['obj_p'])
-        actions['method'].append(dd['method'])
-        actions['param'].append(dd['param'])
+        actions = cls.event_config[kwargs['level_num']][kwargs['obj_name']][kwargs['event_name']]
+        actions['obj_p'].append(kwargs['obj_p'])
+        actions['method'].append(kwargs['method'])
+        actions['param'].append(kwargs['param'])
         return None
 
     @classmethod
-    def removeAction(cls, dd):
-        actions = cls.event_config[dd['level_num']][dd['obj_name']][dd['event_name']]
+    def removeAction(cls, **kwargs):
+        actions = cls.event_config[kwargs['level_num']][kwargs['obj_name']][kwargs['event_name']]
         for i, obj in enumerate(actions['obj_p']):
-            if obj == dd['obj_p']:
-                if actions['method'][i] == dd['method']:
+            if obj == kwargs['obj_p']:
+                if actions['method'][i] == kwargs['method']:
                     actions['obj_p'].pop(i)
                     actions['method'].pop(i)
                     actions['param'].pop(i)
@@ -79,11 +79,11 @@ class EventFactory(object):
         return None
 
     @classmethod
-    def regSignal(cls, dd):
+    def regSignal(cls, **kwargs):
         # exception: if signal has already existed
-        if dd['level_num'] in list(range(len(cls.event_config))):
-            cls.event_config[dd['level_num']][dd['obj_name']] = \
-                {dd['event_name']:{'method': [], 'obj_p': [], 'param': []}}
+        if kwargs['level_num'] in list(range(len(cls.event_config))):
+            cls.event_config[kwargs['level_num']][kwargs['obj_name']] = \
+                {kwargs['event_name']:{'method': [], 'obj_p': [], 'param': []}}
         return None
 
 
@@ -198,7 +198,7 @@ class Position(object):
         i = str(len(self.L) - 1)
         self.open_action['obj_p'] = 'm.position['+i+']'
         d = {**self.open_event, **self.open_action}
-        EventFactory.regAction(d)
+        EventFactory.regAction(**d)
         # 注册信号，用来更新limit_check(), stop_check()
         #d = {'level_num':kw['level'], 'obj_name': kw['limit_obj_name'], 'event_name':kw['limit_event_name'],
         #     'obj_p':'m.position['+i+']', 'method':'checkt_event', 'param':''}
@@ -210,7 +210,7 @@ class Position(object):
         self.TmOp = k[4]
         self.openV = k[3]
         d ={**self.open_event, **self.open_action}
-        EventFactory.removeAction(d)
+        EventFactory.removeAction(**d)
         
         
         return None

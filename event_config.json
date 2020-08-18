@@ -1,8 +1,8 @@
 [
 	{"level" : 0,
-	"Stick" : {"NEW" : {   "method" : ["update2", "update2", "updateAll"],
-							"obj_p" : ["m.Lv1_L[-1]", "m.PCLv0_L[0]", "m.SIG_L[0]"],
-							"param": ["","",""]},
+	"Stick" : {"NEW" : {   "method" : ["update2", "update2"],
+							"obj_p" : ["m.Lv1_L[-1]", "m.PCLv0_L[0]"],
+							"param": ["",""]},
 				"PEAK" :  { "method" : ["updateLastSt"],
 							"obj_p" : ["m.PCLv0_L[0]"],
 							"param":  [""]},
