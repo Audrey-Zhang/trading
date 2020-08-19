@@ -1449,8 +1449,8 @@ class PatternPair(object):
         new_pattern.status = 0 # 0: no pattern ; 1: pattern formed; 
         
         new_pattern.obj_list = [pair]
-        node = new_pattern.step_nodes[0]
-        node(pair)
+        #node = new_pattern.step_nodes[0]
+        #node(pair)
         return None 
     
     def regAction(self):
@@ -1506,51 +1506,60 @@ class Signal001(object):
         self.TmS = 0
         self.TmE = None
         self.drt = 0
+        self.HLayer = 0
         self.LLayer = 0
-        self.HP = 0
-        self.HL_limit = 0
+        self.HTmS = 0
+        self.LTmS = 0
         self.regAction()
     
     def __repr__(self):
-        discription = 'SIG001{0.LLayer!r}(TmS:{0.TmS!r}, {0.drt!r}, {0.HP!r}, {0.HL_limit!r})'.format(self)  
+        if self.status == 0:
+            discription = 'SIG001{0.HLayer!r}-{0.LLayer!r}(TmS:{0.TmS!r}, {0.drt!r}, {0.HTmS!r}, {0.LTmS!r})'.format(self)  
+        else:
+            discription = 'SIG001{0.HLayer!r}-{0.LLayer!r}(TmS:{0.TmS!r}, {0.drt!r}, {0.HTmS!r}, {0.LTmS!r}, {0.HL_limit})'.format(self) 
         return  discription
 
 
-    @classmethod
-    def is_new(cls):
+    def is_new(self):
         flag = 0
 
-        if cls.not_prepared():
+        if self.not_prepared():
             print('Not Prepared!!!!')
             return flag 
 
-        for i in list(range(cls.m.layer))[::-1]:
+        for i in list(range(self.m.layer))[::-1]:
             if i == 0:
                 #return flag
                 break
-            elif len(cls.m.findList('pairchain', i)[0].cL[0]) < 2:
+            elif len(self.m.findList('pairchain', i)[0].cL[0]) < 2:
                 continue
 
-            HL_limit = cls.m.findList('pairchain', i)[0].cL[0][-1].ccHL[2:]
+            HL_limit = self.m.findList('pairchain', i)[0].cL[0][-1].ccHL[2:]
             for j in list(range(i-1))[::-1]:
-                HL_pair = [cls.m.findList('pairchain', j)[0].cL[0][-2].ccHL[2:]]
-                HL_pair.append(cls.m.findList('pairchain', j)[0].cL[0][-1].ccHL[2:])
+                HL_pair = [self.m.findList('pairchain', j)[0].cL[0][-2].ccHL[2:]]
+                HL_pair.append(self.m.findList('pairchain', j)[0].cL[0][-1].ccHL[2:])
 
                 #小级别Pair是否破大级别Pair的边界
-                drt, con1 = cls.is_puncture(HL_limit, HL_pair)
+                drt, con1 = self.is_puncture(HL_limit, HL_pair)
 
                 # 小级别Pair是否破线方向级进
-                con2 = cls.is_step(HL_pair, drt)
+                con2 = self.is_step(HL_pair, drt)
 
-                if con1*con2 != 0:
-                    flag = 1
-                    print('New SIG!!!')
-                    new_dict = {'TmS': cls.m.TmIdx,
+                new_dict = {'TmS': self.m.TmIdx,
                     'drt': drt,
+                    'HLayer': i,
                     'LLayer': j,
-                    'HP': cls.m.findList('pair', i)[-1]}
-                    cls.newSignal(**new_dict)
-                    print(HL_limit, HL_pair)
+                    'HTmS': self.m.findList('pairchain', i)[0].cL[0][-1].TmS,
+                    'LTmS': self.m.findList('pairchain', j)[0].cL[0][-1].TmS,
+                    'HP': self.m.findList('pairchain', i)[0].cL[0][-1]}
+                # sig pattern是否已存在
+                con3 = self.not_exist(**new_dict)
+
+                if con1*con2 != 0 and con3:
+                    flag = 1
+                    print('New SIG!!!')                    
+                    self.newSignal(**new_dict)
+                    print(con3)
                         
 
         return flag
@@ -1577,11 +1586,20 @@ class Signal001(object):
         return flag
 
     @staticmethod
-    def is_overlap(range01, range02):
+    def is_overlap(range01, range02): # ccHL是否重叠
         flag = 0
         if range01[0] < range02[1] or range01[0] > range02[0]:
             flag = 1
         return flag
+
+    def not_exist(self, **kwargs):  #Signal pattern 去重
+        con1 = self.HLayer == kwargs['HLayer']
+        con2 = self.LLayer == kwargs['LLayer']
+        con3 = self.HTmS == kwargs['HTmS']
+        con4 = self.LTmS == kwargs['LTmS']
+        if con1 and con2 and con3 and con4:
+            return False
+        return True
 
     @classmethod
     def not_prepared(cls):
@@ -1590,9 +1608,8 @@ class Signal001(object):
             return True 
         return False
 
-    @classmethod
-    def updateAll(cls):
-        cls.is_new()
+    def updateAll(self):
+        self.is_new()
         return None
 
     @classmethod
@@ -1602,10 +1619,15 @@ class Signal001(object):
         new_signal.TmS = kwargs['TmS']
         new_signal.TmE = None
         new_signal.drt = kwargs['drt']
+        new_signal.HLayer = kwargs['HLayer']
         new_signal.LLayer = kwargs['LLayer']
+        new_signal.HTmS = kwargs['HTmS']
+        new_signal.LTmS = kwargs['LTmS']
         new_signal.HP = kwargs['HP']
         new_signal.status = 1
         new_signal.HL_limit = new_signal.HP.ccHL[2:]
+        new_signal.HP_cc = new_signal.HP.cc
+        new_signal.HP_st_len = len(new_signal.HP.index)
         
         cls.L.append(new_signal)
         cls.sendSignal()
@@ -1628,6 +1650,14 @@ class Signal001(object):
             'param': ''
         })
         signal_methods.append({
+            'level_num': 0,
+            'obj_name': 'Stick',
+            'event_name': 'NEW',
+            'obj_p': 'm.PLv1_L[-1]',
+            'method': 'distr',
+            'param': ''
+        })
+        signal_methods.append({
             'level_num': 1,
             'obj_name': 'TrendLv1',
             'event_name': 'NEW',
@@ -1636,10 +1666,26 @@ class Signal001(object):
             'param': ''
         })
         signal_methods.append({
+            'level_num': 1,
+            'obj_name': 'TrendLv1',
+            'event_name': 'NEW',
+            'obj_p': 'm.PLv2_L[-1]',
+            'method': 'distr',
+            'param': ''
+        })
+        signal_methods.append({
             'level_num': 2,
             'obj_name': 'TrendLv2',
             'event_name': 'NEW',
             'obj_p': 'm.PLv2_L[-1]',
+            'method': 'distr',
+            'param': ''
+        })
+        signal_methods.append({
+            'level_num': 2,
+            'obj_name': 'TrendLv2',
+            'event_name': 'NEW',
+            'obj_p': 'm.PLv3_L[-1]',
             'method': 'distr',
             'param': ''
         })
@@ -1655,7 +1701,7 @@ class Signal001(object):
             'level_num': 0,
             'obj_name': 'Stick',
             'event_name': 'NEW',
-            'obj_p': 'm.SIG_L[0]',
+            'obj_p': 'm.SIG_L[-1]',
             'method': 'updateAll',
             'param': ''
         })
@@ -1663,4 +1709,3 @@ class Signal001(object):
             cls.ef.regAction(**m)
         return None
 
-       
