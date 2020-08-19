@@ -1535,6 +1535,13 @@ class Signal001(object):
                 continue
 
             HL_limit = self.m.findList('pairchain', i)[0].cL[0][-1].ccHL[2:]
+            # 是否在盘整
+            HP = self.m.findList('pairchain', i)[0].cL[0][-1]
+            LP_L = [p for p in self.m.findList('pairchain', i-1)[0].cL[0] if p.TmS >= HP.TmS]
+            con0 = self.is_breather(HP, LP_L)
+            if con0 != 1:
+                continue
+
             for j in list(range(i-1))[::-1]:
                 HL_pair = [self.m.findList('pairchain', j)[0].cL[0][-2].ccHL[2:]]
                 HL_pair.append(self.m.findList('pairchain', j)[0].cL[0][-1].ccHL[2:])
@@ -1564,6 +1571,19 @@ class Signal001(object):
 
         return flag
     
+    def is_breather(self, HP, LP_L): # 盘整
+        HP_r = [HP.ccHL[3], HP.ccHL[2]]
+        cons = 1
+        flag = 0
+        for p in LP_L:
+            p_r = [p.ccHL[3], p.ccHL[2]]
+            cons = cons*self.is_overlap(HP_r, p_r)
+
+        if cons == 1:
+            flag = 1
+
+        return flag
+    
     @staticmethod
     def is_puncture(HL_limit, HL_pair):  # 穿刺
         flag = 0
@@ -1586,10 +1606,12 @@ class Signal001(object):
         return flag
 
     @staticmethod
-    def is_overlap(range01, range02): # ccHL是否重叠
+    def is_overlap(range01, range02, ratio = 0.34): # LH是否重叠 
         flag = 0
-        if range01[0] < range02[1] or range01[0] > range02[0]:
-            flag = 1
+        if (range02[1] - range01[0])*(range01[1] - range02[0]) > 0:
+            r = (range01[1] - range02[0]) / (range02[1] - range01[0])
+            if r >= ratio:
+                flag = 1
         return flag
 
     def not_exist(self, **kwargs):  #Signal pattern 去重
@@ -1650,14 +1672,6 @@ class Signal001(object):
             'param': ''
         })
         signal_methods.append({
-            'level_num': 0,
-            'obj_name': 'Stick',
-            'event_name': 'NEW',
-            'obj_p': 'm.PLv1_L[-1]',
-            'method': 'distr',
-            'param': ''
-        })
-        signal_methods.append({
             'level_num': 1,
             'obj_name': 'TrendLv1',
             'event_name': 'NEW',
@@ -1666,26 +1680,10 @@ class Signal001(object):
             'param': ''
         })
         signal_methods.append({
-            'level_num': 1,
-            'obj_name': 'TrendLv1',
-            'event_name': 'NEW',
-            'obj_p': 'm.PLv2_L[-1]',
-            'method': 'distr',
-            'param': ''
-        })
-        signal_methods.append({
             'level_num': 2,
             'obj_name': 'TrendLv2',
             'event_name': 'NEW',
             'obj_p': 'm.PLv2_L[-1]',
-            'method': 'distr',
-            'param': ''
-        })
-        signal_methods.append({
-            'level_num': 2,
-            'obj_name': 'TrendLv2',
-            'event_name': 'NEW',
-            'obj_p': 'm.PLv3_L[-1]',
             'method': 'distr',
             'param': ''
         })
