@@ -1541,13 +1541,17 @@ class Signal001(object):
             con0 = self.is_breather(HP, LP_L)
             if con0 != 1:
                 continue
+            else:
+                self.L.append([self.m.TmIdx, HL_limit,HP])
 
             for j in list(range(i-1))[::-1]:
                 HL_pair = [self.m.findList('pairchain', j)[0].cL[0][-2].ccHL[2:]]
                 HL_pair.append(self.m.findList('pairchain', j)[0].cL[0][-1].ccHL[2:])
 
+                LP_L = [p for p in self.m.findList('pairchain', j)[0].cL[0] if p.TmS >= HP.TmS]
+
                 #小级别Pair是否破大级别Pair的边界
-                drt, con1 = self.is_puncture(HL_limit, HL_pair)
+                drt, con1 = self.is_puncture(HL_limit, LP_L)
 
                 # 小级别Pair是否破线方向级进
                 con2 = self.is_step(HL_pair, drt)
@@ -1567,7 +1571,8 @@ class Signal001(object):
                     print('New SIG!!!')                    
                     self.newSignal(**new_dict)
                     print(con3)
-                        
+
+                    
 
         return flag
     
@@ -1575,6 +1580,8 @@ class Signal001(object):
         HP_r = [HP.ccHL[3], HP.ccHL[2]]
         cons = 1
         flag = 0
+        if len(LP_L)<3:
+            return flag
         for p in LP_L:
             p_r = [p.ccHL[3], p.ccHL[2]]
             cons = cons*self.is_overlap(HP_r, p_r)
@@ -1585,12 +1592,14 @@ class Signal001(object):
         return flag
     
     @staticmethod
-    def is_puncture(HL_limit, HL_pair):  # 穿刺
+    def is_puncture(HL_limit, LP_L):  # 穿刺
         flag = 0
-        if max(HL_pair[0][0], HL_pair[1][0]) > max(HL_limit):
+        peak = LP_L[-1].P
+        print('是否穿刺：p:{0},HL:{1}'.format(peak,HL_limit))
+        if peak > max(HL_limit):
             drt = 1
             flag = 1
-        elif min(HL_pair[0][1], HL_pair[1][1]) < min(HL_limit):
+        elif peak < min(HL_limit):
             drt, flag = -1,1
         else:
             drt = 0
@@ -1630,8 +1639,9 @@ class Signal001(object):
             return True 
         return False
 
-    def updateAll(self):
-        self.is_new()
+    @classmethod
+    def updateAll(cls):
+        cls.L[0].is_new()
         return None
 
     @classmethod
@@ -1699,7 +1709,7 @@ class Signal001(object):
             'level_num': 0,
             'obj_name': 'Stick',
             'event_name': 'NEW',
-            'obj_p': 'm.SIG_L[-1]',
+            'obj_p': 'm.SIG_L[0]',
             'method': 'updateAll',
             'param': ''
         })
