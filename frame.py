@@ -114,8 +114,8 @@ class Market(object):
     def __init__(self, level_cnt=4):
         self.layer = level_cnt
         self.TmIdx = 0
-        obj_name_list = ['Lv', 'PLv', 'PCLv', 'MPLv','PT01Lv']
-        obj_name = ['st', 'pair', 'pairchain', 'mergedpair', 'pattern01']
+        obj_name_list = ['Lv', 'PLv', 'PCLv', 'MPLv','PT01Lv','CLv']
+        obj_name = ['st', 'pair', 'pairchain', 'mergedpair', 'pattern01', 'center']
         self.obj_list = {k:[[] for i in list(range(self.layer+1))] for k in obj_name}
         for i in range(level_cnt):
             for j, obj in enumerate(obj_name_list):

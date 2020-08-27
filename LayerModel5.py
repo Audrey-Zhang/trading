@@ -950,100 +950,113 @@ class Trend(object):
 
 class CenterStrict(object):
     m = Market()
-    def __init__(self, stick_list, m):
-        self.level = stick_list[0].level
-        self.TmS = stick_list[0].start.TmIdx
-        self.group_TmS = self.TmS
+    L = []
+    ML = []
+    level = -1
+    def __init__(self, m=None, level=0, st_idx_list=None):
+        if st_idx_list is None:
+            self.L.append(self)
+            self.TmS, self.TmE = 0,0
+            self.st_idxL = [0]
+            self.L, self.H = 0,0
+            
+        else:
+            self.L = [self] ####???????
+            self.level = level
+            self.ML = m.findList('st', level)   
 
-        self.initby2Stick(stick_list[:3])
+            self.st_idxL = st_idx_list
+            st0 = self.ML[self.st_idxL[0]]
+            self.TmS = st0.start.TmIdx
+            self.TmE = st0.peak.TmIdx
+            self.L = min(st0.start.V, st0.peak.V)
+            self.H = max(st0.start.V, st0.peak.V)
 
-        m.CenterStrict_LD[self.group_TmS] = [self]
-        self.group_L = m.CenterStrict_LD[self.group_TmS]
+            self.update(st_idx_list[1:])
 
-        if len(stick_list) > 3:
-            for st in stick_list[3:]:
-                if not self.update1Stick(st):
-                    idx = stick_list.index(st)
-                    self.newAndCopy(stick_list[idx - 2:], self.group_TmS, m)
-                    break
-    
-    def update1Stick(self, stick):
-        v = stick.start.V 
-        flag = self.isInHL(v)
-        updated  = True
-        if self.inside and flag:
-            self.cnt += 1
-        elif not self.inside and flag:
-            self.updateHL(v)
-            self.inside = flag # True
-            self.TmE = stick.start.TmIdx
-            self.cnt += 2
-        elif self.inside and not flag:
-            self.inside = flag  # = False
-        elif not self.inside and not flag:
-            pre_v = self.point_L[-1].V 
-            if self.diffside(pre_v, v):
-                self.updateHL(pre_v)
-                self.updateHL(v)
-                self.TmE = stick.start.TmIdx
-                self.inside = True
-                self.cnt += 2
-            else: # same side
-                updated = False
-        self.point_L.append(stick.start)
-        return updated
+    def __repr__(self):
+        description ='Center{0.level}({0.TmS!r}, {1!r}, {0.H!r}, {0.L!r})'.format(self, len(self.st_idxL))
+        return description
 
-    def __str__(self):
-        return '({0.TmS!s}, {0.L!s}, {0.H!s})'.format(self)
 
-    @classmethod
-    def newAndCopy(cls, stick_list, TmS, m):
-        new_center = cls.__new__(cls)
-        new_center.level = stick_list[0].level
-        new_center.TmS = stick_list[0].start.TmIdx
-        new_center.group_TmS = TmS
+    def update(self, st_idx_list=None): #链式更新
+        flag = 0
+        if self.too_early():
+            print('too early')
+            return None
+        if self.H == 0 and self.L == 0:
+            self.H = max(self.ML[0].start.V, self.ML[0].peak.V)
+            self.L = min(self.ML[0].start.V, self.ML[0].peak.V)
 
-        new_center.initby2Stick(stick_list[:3])
+        if st_idx_list is None: # 把ML[-2]更新进去
+            if self.st_idxL[-1] < len(self.ML) - 2:
+                st_idx_list = list(range(self.st_idxL[-1]+1, len(self.ML)-1))
+            else:
+                return None
 
-        new_center.group_L = m.CenterStrict_LD[new_center.group_TmS]
-        new_center.group_L.append(new_center)
-
-        if len(stick_list) > 3:
-            for st in stick_list[3:]:
-                if not new_center.update1Stick(st):
-                    idx = stick_list.index(st)
-                    new_center.newAndCopy(stick_list[idx - 2:], TmS, m)
-                    break
+        for st_idx in st_idx_list:
+            flag = self.update1Stick(st_idx)
+            if flag == 2:
+                i = st_idx_list.index(st_idx)
+                st_L = st_idx_list[i:]
+                print(i, " L:", st_idx_list," ",st_L)
+                new_center ={'st_idxL': st_L}
+                self.newCenter(**new_center)
+                break                   
         return None
 
+    
+    def update1Stick(self, st_idx): # Return: flag  2:NEW 0:else 
+        flag = 0
+        st = self.ML[st_idx]
+        if self.out_st(st):
+            self.st_idxL.pop()
+            flag = 2
+        else:
+            self.st_idxL.append(st_idx)
+            if len(self.st_idxL) == 2:
+                pass
+            elif len(self.st_idxL) > 2:
+                self.updHL(self.st_idxL[-2])
+                self.TmE = self.ML[self.st_idxL[-1]].start.TmIdx
+        return flag
 
-    def isInHL(self, v):
-        if v >= self.L and v <= self.H:
+    @classmethod
+    def newCenter(cls, **kwargs):
+        new_center = cls.__new__(cls)
+        cls.L.append(new_center)
+
+        new_center.st_idxL = kwargs['st_idxL']
+        st0 = cls.ML[new_center.st_idxL[0]]
+        new_center.TmS = st0.start.TmIdx
+        new_center.TmE = st0.peak.TmIdx
+        new_center.H = max(st0.start.V, st0.peak.V)
+        new_center.L = min(st0.start.V, st0.peak.V)
+        print("{0.H},{0.L}".format(new_center))
+
+        new_center.update(new_center.st_idxL[1:])
+        return None
+
+    def too_early(self):
+        flag = False
+        if len(self.ML) < 3:
+            flag = True
+        return flag
+
+    def out_st(self, st):
+        if st.start.V > self.H and st.peak.V > self.H:
+            return True
+        elif st.start.V < self.L and st.peak.V < self.L:
             return True
         else:
             return False
 
-    def updateHL(self, v):
-        self.H = max(self.H, v)
-        self.L = min(self.L, v)
+    def updHL(self, st_idx):
+        st = self.ML[st_idx]
+        self.H = max(self.H, st.start.V, st.peak.V)
+        self.L = min(self.L, st.start.V, st.peak.V)
         return None
 
-    def diffside(self, v1, v2):
-        if v1 > self.H and v2 > self.H:
-            return False
-        elif v1 < self.L and v2 < self.L:
-            return False
-        return True
-
-    def initby2Stick(self, stick_list):
-        self.point_L = [st.start for st in stick_list]
-        values = np.array([st.start.V for st in stick_list])        
-        self.H = values.max()
-        self.L = values.min()
-        self.inside = True
-        self.TmE = stick_list[-1].start.TmIdx
-        self.cnt = 1
-        return None
 
 
 class Pair(object):

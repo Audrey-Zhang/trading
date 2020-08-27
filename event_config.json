@@ -1,8 +1,8 @@
 [
 	{"level" : 0,
-	"Stick" : {"NEW" : {   "method" : ["update2", "update2"],
-							"obj_p" : ["m.Lv1_L[-1]", "m.PCLv0_L[0]"],
-							"param": ["",""]},
+	"Stick" : {"NEW" : {   "method" : ["update2", "update2", "update"],
+							"obj_p" : ["m.Lv1_L[-1]", "m.PCLv0_L[0]", "m.CLv0_L[-1]"],
+							"param": ["","",""]},
 				"PEAK" :  { "method" : ["updateLastSt"],
 							"obj_p" : ["m.PCLv0_L[0]"],
 							"param":  [""]},
@@ -16,9 +16,9 @@
 				}
 	},
 	{"level" : 1,		
-	"TrendLv1" : {"NEW" : {   "method" : ["update2", "update2"],
-							"obj_p" : ["m.Lv2_L[-1]", "m.PCLv1_L[0]"],
-							"param": ["",""]},
+	"TrendLv1" : {"NEW" : {   "method" : ["update2", "update2", "update"],
+							"obj_p" : ["m.Lv2_L[-1]", "m.PCLv1_L[0]", "m.CLv1_L[-1]"],
+							"param": ["","",""]},
 				"PEAK" :  { "method" : ["updateLastSt"],
 							"obj_p" : ["m.PCLv1_L[0]"],
 							"param":  [""]},
@@ -33,9 +33,9 @@
 			   
 	},
 	{"level" : 2,		
-	"TrendLv2" : {"NEW" : {   "method" : ["update2", "update2"],
-							"obj_p" : ["m.Lv3_L[-1]", "m.PCLv2_L[0]"],
-							"param": ["",""]},
+	"TrendLv2" : {"NEW" : {   "method" : ["update2", "update2", "update"],
+							"obj_p" : ["m.Lv3_L[-1]", "m.PCLv2_L[0]", "m.CLv2_L[-1]"],
+							"param": ["","",""]},
 				"LVUPD" : {  "method" : ["updatePeakP"],
 							"obj_p" : ["m.Lv3_L[-1]"],
 							"param":  ["k_bar=m.dt[-1]"]   }
@@ -43,8 +43,8 @@
 			   
 	},
 	{"level" : 3,		
-	"TrendLv3" : {"NEW" : {   "method" : [""],
-							"obj_p" : [""],
+	"TrendLv3" : {"NEW" : {   "method" : ["update"],
+							"obj_p" : ["m.CLv3_L[-1]"],
 							"param": [""]},
 				"LVUPD" : {  "method" : [""],
 							"obj_p" : [""],
