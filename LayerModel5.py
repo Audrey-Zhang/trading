@@ -953,18 +953,23 @@ class CenterStrict(object):
     L = []
     ML = []
     level = -1
+    openL =[]
     def __init__(self, m=None, level=0, st_idx_list=None):
         if st_idx_list is None:
             self.L.append(self)
+            self.openL.append(self)
+            self.is_main = 0
             self.TmS, self.TmE = 0,0
             self.st_idxL = [0]
             self.L, self.H = 0,0
             
         else:
             self.L = [self] ####???????
+            self.openL.append(self)
             self.level = level
             self.ML = m.findList('st', level)   
 
+            self.is_main = 0
             self.st_idxL = st_idx_list
             st0 = self.ML[self.st_idxL[0]]
             self.TmS = st0.start.TmIdx
@@ -979,6 +984,11 @@ class CenterStrict(object):
         return description
 
 
+    def updateAll(self):
+        for cc in self.openL:
+            cc.update()
+        return None
+    
     def update(self, st_idx_list=None): #链式更新
         flag = 0
         if self.too_early():
@@ -997,10 +1007,11 @@ class CenterStrict(object):
         for st_idx in st_idx_list:
             flag = self.update1Stick(st_idx)
             if flag == 2:
+                self.is_main = 10
                 i = st_idx_list.index(st_idx)
                 st_L = st_idx_list[i:]
                 print(i, " L:", st_idx_list," ",st_L)
-                new_center ={'st_idxL': st_L}
+                new_center ={'st_idxL': st_L, 'flag': flag}
                 self.newCenter(**new_center)
                 break                   
         return None
@@ -1026,6 +1037,12 @@ class CenterStrict(object):
         new_center = cls.__new__(cls)
         cls.L.append(new_center)
 
+        if kwargs['flag'] is not None:
+            if kwargs['flag'] == 2:
+                cls.close_all_open()
+        cls.openL.append(new_center)
+
+        new_center.is_main = 0
         new_center.st_idxL = kwargs['st_idxL']
         st0 = cls.ML[new_center.st_idxL[0]]
         new_center.TmS = st0.start.TmIdx
@@ -1034,7 +1051,13 @@ class CenterStrict(object):
         new_center.L = min(st0.start.V, st0.peak.V)
         print("{0.H},{0.L}".format(new_center))
 
+
         new_center.update(new_center.st_idxL[1:])
+        return None
+
+    @classmethod
+    def close_all_open(cls):
+        cls.openL =[]
         return None
 
     def too_early(self):
