@@ -988,7 +988,11 @@ class CenterStrict(object):
     @classmethod
     def updateAll(cls):
         for cc in cls.openL:
-            cc.update()
+            flag = cc.update()
+            if flag == 2:
+                cls.openL.clear()
+                cls.openL.append(cls.L[-1])
+                break
         return None
     
     def update(self, st_idx_list=None): #链式更新
@@ -1010,14 +1014,13 @@ class CenterStrict(object):
             flag = self.update1Stick(st_idx)
             if flag == 2:
                 self.is_main = 10
-                self.close_all_open()
                 i = st_idx_list.index(st_idx)
                 st_L = st_idx_list[i:]
                 self.remark.append('Upd-{2}:i:{0},{1},{3}'.format(i, st_idx_list, self.m.TmIdx, st_L))
                 new_center ={'st_idxL': st_L, 'flag':flag}
                 self.newCenter(**new_center)
                 break                   
-        return None
+        return flag
 
     
     def update1Stick(self, st_idx): # Return: flag  2:NEW 0:else 
@@ -1057,11 +1060,6 @@ class CenterStrict(object):
         new_center.remark = ['N-{2}: flag:{1}, open_cnt:{0}'.format(len(cls.openL), flag, cls.m.TmIdx)]
         
         new_center.update(new_center.st_idxL[1:])
-        return None
-
-    @classmethod
-    def close_all_open(cls):
-        cls.openL =[]
         return None
 
     def too_early(self):
