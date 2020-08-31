@@ -962,6 +962,7 @@ class CenterStrict(object):
             self.TmS, self.TmE = 0,0
             self.st_idxL = [0]
             self.L, self.H = 0,0
+            self.remark = ['init-{}'.format(self.TmS)]
             
         else:
             self.L = [self] ####???????
@@ -976,6 +977,7 @@ class CenterStrict(object):
             self.TmE = st0.peak.TmIdx
             self.L = min(st0.start.V, st0.peak.V)
             self.H = max(st0.start.V, st0.peak.V)
+            self.remark = ['init_by_L-{}'.format(self.TmS)]
 
             self.update(st_idx_list[1:])
 
@@ -983,9 +985,9 @@ class CenterStrict(object):
         description ='Center{0.level}({0.TmS!r}, {1!r}, {0.H!r}, {0.L!r})'.format(self, len(self.st_idxL))
         return description
 
-
-    def updateAll(self):
-        for cc in self.openL:
+    @classmethod
+    def updateAll(cls):
+        for cc in cls.openL:
             cc.update()
         return None
     
@@ -1008,10 +1010,11 @@ class CenterStrict(object):
             flag = self.update1Stick(st_idx)
             if flag == 2:
                 self.is_main = 10
+                self.close_all_open()
                 i = st_idx_list.index(st_idx)
                 st_L = st_idx_list[i:]
-                print(i, " L:", st_idx_list," ",st_L)
-                new_center ={'st_idxL': st_L, 'flag': flag}
+                self.remark.append('Upd-{2}:i:{0},{1},{3}'.format(i, st_idx_list, self.m.TmIdx, st_L))
+                new_center ={'st_idxL': st_L, 'flag':flag}
                 self.newCenter(**new_center)
                 break                   
         return None
@@ -1025,6 +1028,7 @@ class CenterStrict(object):
             flag = 2
         else:
             self.st_idxL.append(st_idx)
+            self.remark.append('Upd1st-{0}:{1}'.format(self.m.TmIdx, self.st_idxL))
             if len(self.st_idxL) == 2:
                 pass
             elif len(self.st_idxL) > 2:
@@ -1036,12 +1040,13 @@ class CenterStrict(object):
     def newCenter(cls, **kwargs):
         new_center = cls.__new__(cls)
         cls.L.append(new_center)
-
-        if kwargs['flag'] is not None:
-            if kwargs['flag'] == 2:
-                cls.close_all_open()
         cls.openL.append(new_center)
 
+        flag = 0
+        if kwargs['flag'] is not None:
+            flag = 2
+                
+        
         new_center.is_main = 0
         new_center.st_idxL = kwargs['st_idxL']
         st0 = cls.ML[new_center.st_idxL[0]]
@@ -1049,9 +1054,8 @@ class CenterStrict(object):
         new_center.TmE = st0.peak.TmIdx
         new_center.H = max(st0.start.V, st0.peak.V)
         new_center.L = min(st0.start.V, st0.peak.V)
-        print("{0.H},{0.L}".format(new_center))
-
-
+        new_center.remark = ['N-{2}: flag:{1}, open_cnt:{0}'.format(len(cls.openL), flag, cls.m.TmIdx)]
+        
         new_center.update(new_center.st_idxL[1:])
         return None
 
