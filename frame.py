@@ -79,7 +79,7 @@ class EventFactory(object):
         return None
 
     @classmethod
-    def regSignal(cls, **kwargs):
+    def regEvent(cls, **kwargs):
         # exception: if signal has already existed
         if kwargs['level_num'] in list(range(len(cls.event_config))):
             cls.event_config[kwargs['level_num']][kwargs['obj_name']] = \

@@ -954,8 +954,8 @@ class CenterStrict(object):
     ML = []
     level = -1
     openL =[]
-    def __init__(self, m=None, level=0, st_idx_list=None):
-        if st_idx_list is None:
+    def __init__(self, m=None, level=0, stS_idx=None):
+        if stS_idx is None:
             self.L.append(self)
             self.openL.append(self)
             self.is_main = 0
@@ -964,22 +964,21 @@ class CenterStrict(object):
             self.L, self.H = 0,0
             self.remark = ['init-{}'.format(self.TmS)]
             
-        else:
-            self.L = [self] ####???????
+        else: 
+            self.L.append(self)
             self.openL.append(self)
-            self.level = level
-            self.ML = m.findList('st', level)   
+            # level 不修改， ML不修改
 
             self.is_main = 0
-            self.st_idxL = st_idx_list
-            st0 = self.ML[self.st_idxL[0]]
+            self.st_idxL = list(range(stS_idx+1, len(self.ML)-1))
+            st0 = self.ML[stS_idx+1]
             self.TmS = st0.start.TmIdx
             self.TmE = st0.peak.TmIdx
             self.L = min(st0.start.V, st0.peak.V)
             self.H = max(st0.start.V, st0.peak.V)
             self.remark = ['init_by_L-{}'.format(self.TmS)]
 
-            self.update(st_idx_list[1:])
+            self.update(self.st_idxL[1:])
 
     def __repr__(self):
         description ='Center{0.level}({0.TmS!r}, {1!r}, {0.H!r}, {0.L!r})'.format(self, len(self.st_idxL))
@@ -1022,7 +1021,6 @@ class CenterStrict(object):
                 break                   
         return flag
 
-    
     def update1Stick(self, st_idx): # Return: flag  2:NEW 0:else 
         flag = 0
         st = self.ML[st_idx]
@@ -1043,21 +1041,32 @@ class CenterStrict(object):
     def newCenter(cls, **kwargs):
         new_center = cls.__new__(cls)
         cls.L.append(new_center)
-        cls.openL.append(new_center)
 
         flag = 0
         if kwargs['flag'] is not None:
-            flag = 2
-                
+            flag = kwargs['flag']                
         
         new_center.is_main = 0
-        new_center.st_idxL = kwargs['st_idxL']
-        st0 = cls.ML[new_center.st_idxL[0]]
-        new_center.TmS = st0.start.TmIdx
-        new_center.TmE = st0.peak.TmIdx
-        new_center.H = max(st0.start.V, st0.peak.V)
-        new_center.L = min(st0.start.V, st0.peak.V)
-        new_center.remark = ['N-{2}: flag:{1}, open_cnt:{0}'.format(len(cls.openL), flag, cls.m.TmIdx)]
+
+        if kwargs['stS_idx'] is not None:
+            flag = 1
+            cls.openL.append(self)
+            
+            new_center.st_idxL = list(range(stS_idx+1, len(cls.ML)-1))
+            st0 = cls.ML[stS_idx+1]
+            new_center.TmS = st0.start.TmIdx
+            new_center.TmE = st0.peak.TmIdx
+            new_center.L = min(st0.start.V, st0.peak.V)
+            new_center.H = max(st0.start.V, st0.peak.V)
+            new_center.remark = ['N1-{0}:TmS:{1}'.format(cls.m.TmIdx,new_center.TmS)]
+        else:
+            new_center.st_idxL = kwargs['st_idxL']
+            st0 = cls.ML[new_center.st_idxL[0]]
+            new_center.TmS = st0.start.TmIdx
+            new_center.TmE = st0.peak.TmIdx
+            new_center.H = max(st0.start.V, st0.peak.V)
+            new_center.L = min(st0.start.V, st0.peak.V)
+            new_center.remark = ['N2-{1}: open_cnt:{0}'.format(len(cls.openL), cls.m.TmIdx)]
         
         new_center.update(new_center.st_idxL[1:])
         return None
@@ -1351,9 +1360,9 @@ class PairChain(object):
         Event(level=self.level, obj_name = self.sig_name, event_name='NEW')
         return None
 
-    def regSignal(self):
+    def regEvent(self):
         kw = {'level_num':self.level, 'obj_name': self.sig_name, 'event_name':'NEW'}
-        EventFactory.regSignal(**kw)
+        EventFactory.regEvent(**kw)
         return None
 
 class PatternPair(object):
