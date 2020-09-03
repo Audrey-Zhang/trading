@@ -261,12 +261,12 @@ class StdK:
             self.H = min(self.H, new_stdk['H'])
             
 class Stick(object):
-    lv_L = []
+    L = []
     m = {'1': ['L', 'H', 'H'], '-1':['H', 'L', 'L']}
     level = 0
     mm = Market()
     def __init__(self, method, **kwargs):
-        self.lv_L.append(self)
+        self.L.append(self)
         if method == 'init':
             self.start = Point(kwargs['k_bar'][4], kwargs['k_bar'][0], drt=0)
             self.end = Point(kwargs['k_bar'][4], kwargs['k_bar'][0], drt=0)
@@ -295,7 +295,7 @@ class Stick(object):
         return '(drt:{0.drt!s}, lv:{0.level!s}, {0.start!s})'.format(self)
 
     def update(self, k_bar):
-        return self.lv_L[-1].update1Bar(k_bar)
+        return self.L[-1].update1Bar(k_bar)
 
     def update1Bar(self, k_bar):
         '''
@@ -441,12 +441,13 @@ class Stick(object):
 
                 
 class Trend(object):
-    lv_L = []
+    L = []
     level = -1
     ML = []
     m = Market()
+    ef = EventFactory()
     def __init__(self, method, **kwargs):
-        self.lv_L.append(self)
+        self.L.append(self)
 
         self.mp = kwargs['mp']
 
@@ -462,6 +463,7 @@ class Trend(object):
             self.SS_stack = []
             self.drt = 0            
             self.status = 0 
+            self.regAction()
 
     def __repr__(self):
         return 'Trend{0.level}({0.drt!r}, {0.status!r}, {0.start!r})'.format(self)
@@ -486,7 +488,7 @@ class Trend(object):
             flag, treated = treated.update1Stick()
             print('Lv{}.update2(): flag:{}, treated.status:{},treaded.drt:{},treated.mp:{}'.\
                 format(self.level, flag, treated.status, treated.drt, treated.mp))
-        self.sendEvent(flag)  #？？don't need to send for each
+        self.sendEvent(flag)  
         return flag
 
     def update1Stick(self):
@@ -617,6 +619,21 @@ class Trend(object):
         event_list = ['', 'LVUPD', 'NEW', 'NEW']
         if event_list[flag] != '':
             Event(level=self.level, obj_name = self.__class__.__name__, event_name=event_list[flag])
+        return None
+
+    @classmethod
+    def regAction(cls): #初始化第1个对象时调用
+        signal_methods = []
+        signal_methods.append({
+            'level_num': cls.level,
+            'obj_name': cls.__name__,
+            'event_name': 'NEW',
+            'obj_p': 'm.CLv'+str(int(cls.level)-1)+'_L[0]',
+            'method': 'newCenter',
+            'param': 'obj="st", level=' + str(int(cls.level)) + ', i=-1'
+        })
+        for m in signal_methods:
+            cls.ef.regAction(**m)
         return None
 
     def updateEndP(self, k_bar):
@@ -772,7 +789,7 @@ class Trend(object):
             self.newTrend(**nt_dict1)
         
         
-        new_trend = self.lv_L[-1]
+        new_trend = self.L[-1]
         return new_trend
 
     def distr(self, st_list=None):
@@ -813,7 +830,7 @@ class Trend(object):
         new_trend = cls.__new__(cls)
         new_trend.ML = cls.ML
 
-        cls.lv_L.append(new_trend)
+        cls.L.append(new_trend)
 
         new_trend.mp = kwargs['mp']
         new_trend.stick_stack = [new_trend.ML[i] for i in new_trend.mp]
@@ -930,10 +947,10 @@ class Trend(object):
 
     @classmethod 
     def findBigStick(cls, pct_spc): 
-        v1, v2 = cls.lv_L[-2].start.V, cls.lv_L[-1].start.V
-        pct = (v2 - v1)*cls.lv_L[-2].drt / v1
+        v1, v2 = cls.L[-2].start.V, cls.L[-1].start.V
+        pct = (v2 - v1)*cls.L[-2].drt / v1
         print('Trend{}: v1:{:.2f}, v2:{:.2f}, drt:{}, pct:{:.2%}'.format(
-            cls.level, v1, v2, cls.lv_L[-2].drt, pct))
+            cls.level, v1, v2, cls.L[-2].drt, pct))
         if pct > pct_spc:
             msg = {}
             Singal('BIGST', level=cls.level, msg = msg)
@@ -954,31 +971,31 @@ class CenterStrict(object):
     ML = []
     level = -1
     openL =[]
-    def __init__(self, m=None, level=0, stS_idx=None):
-        if stS_idx is None:
+    def __init__(self, level=0, stS_idx=None):
+        if stS_idx is None:  # 起点对象
             self.L.append(self)
             self.openL.append(self)
             self.is_main = 0
-            self.TmS, self.TmE = 0,0
             self.st_idxL = [0]
+            self.TmS, self.TmE = 0,0            
             self.L, self.H = 0,0
             self.remark = ['init-{}'.format(self.TmS)]
             
-        else: 
-            self.L.append(self)
-            self.openL.append(self)
-            # level 不修改， ML不修改
+        #else: 
+        #    self.L.append(self)
+        #    self.openL.append(self)
+        #    # level 不修改， ML不修改
 
-            self.is_main = 0
-            self.st_idxL = list(range(stS_idx+1, len(self.ML)-1))
-            st0 = self.ML[stS_idx+1]
-            self.TmS = st0.start.TmIdx
-            self.TmE = st0.peak.TmIdx
-            self.L = min(st0.start.V, st0.peak.V)
-            self.H = max(st0.start.V, st0.peak.V)
-            self.remark = ['init_by_L-{}'.format(self.TmS)]
+        #    self.is_main = 0
+        #    self.st_idxL = list(range(stS_idx+1, len(self.ML)-1))
+        #    st0 = self.ML[stS_idx+1]
+        #    self.TmS = st0.start.TmIdx
+        #    self.TmE = st0.peak.TmIdx
+        #    self.L = min(st0.start.V, st0.peak.V)
+        #    self.H = max(st0.start.V, st0.peak.V)
+        #    self.remark = ['init_by_L-{}'.format(self.TmS)]
 
-            self.update(self.st_idxL[1:])
+        #    self.update(self.st_idxL[1:])
 
     def __repr__(self):
         description ='Center{0.level}({0.TmS!r}, {1!r}, {0.H!r}, {0.L!r})'.format(self, len(self.st_idxL))
@@ -994,28 +1011,36 @@ class CenterStrict(object):
                 break
         return None
     
-    def update(self, st_idx_list=None): #链式更新
+    def update(self, new_st_idx_list=None): #链式更新
         flag = 0
+        # 分析初始化初期，不更新center
         if self.too_early():
-            print('too early')
+            self.remark.append('Upd-too early-{0}'.format(self.m.TmIdx))
             return None
+        
+        # 更新Stick List:
+        if new_st_idx_list is None: # 把ML[-2]更新进去
+            if len(self.st_idxL) == 0:
+                new_st_idx_list = list(range(self.TmInit+1, len(self.ML)-1))
+            elif self.st_idxL[-1] < len(self.ML) - 2:
+                new_st_idx_list = list(range(self.st_idxL[-1]+1, len(self.ML)-1))
+            else:
+                self.remark.append('Upd-no_New_ST-{0}:{1}'.format(self.m.TmIdx), self.st_idxL)
+                return None
+        # 
         if self.H == 0 and self.L == 0:
             self.H = max(self.ML[0].start.V, self.ML[0].peak.V)
             self.L = min(self.ML[0].start.V, self.ML[0].peak.V)
 
-        if st_idx_list is None: # 把ML[-2]更新进去
-            if self.st_idxL[-1] < len(self.ML) - 2:
-                st_idx_list = list(range(self.st_idxL[-1]+1, len(self.ML)-1))
-            else:
-                return None
+        
 
-        for st_idx in st_idx_list:
+        for st_idx in new_st_idx_list:
             flag = self.update1Stick(st_idx)
             if flag == 2:
                 self.is_main = 10
-                i = st_idx_list.index(st_idx)
-                st_L = st_idx_list[i:]
-                self.remark.append('Upd-{2}:i:{0},{1},{3}'.format(i, st_idx_list, self.m.TmIdx, st_L))
+                i = new_st_idx_list.index(st_idx)
+                st_L = new_st_idx_list[i-1:]
+                self.remark.append('Upd-{2}:i:{0},{1},{3}'.format(i, new_st_idx_list, self.m.TmIdx, st_L))
                 new_center ={'st_idxL': st_L, 'flag':flag}
                 self.newCenter(**new_center)
                 break                   
@@ -1038,37 +1063,49 @@ class CenterStrict(object):
         return flag
 
     @classmethod
-    def newCenter(cls, **kwargs):
+    def newCenter(cls, **kwargs): # RETURN：status = 0 或 1 或 链式更新close
         new_center = cls.__new__(cls)
-        cls.L.append(new_center)
-
-        flag = 0
-        if kwargs['flag'] is not None:
-            flag = kwargs['flag']                
+        cls.L.append(new_center)              
         
         new_center.is_main = 0
 
-        if kwargs['stS_idx'] is not None:
-            flag = 1
-            cls.openL.append(self)
-            
-            new_center.st_idxL = list(range(stS_idx+1, len(cls.ML)-1))
-            st0 = cls.ML[stS_idx+1]
-            new_center.TmS = st0.start.TmIdx
-            new_center.TmE = st0.peak.TmIdx
-            new_center.L = min(st0.start.V, st0.peak.V)
-            new_center.H = max(st0.start.V, st0.peak.V)
-            new_center.remark = ['N1-{0}:TmS:{1}'.format(cls.m.TmIdx,new_center.TmS)]
-        else:
-            new_center.st_idxL = kwargs['st_idxL']
-            st0 = cls.ML[new_center.st_idxL[0]]
-            new_center.TmS = st0.start.TmIdx
-            new_center.TmE = st0.peak.TmIdx
-            new_center.H = max(st0.start.V, st0.peak.V)
-            new_center.L = min(st0.start.V, st0.peak.V)
-            new_center.remark = ['N2-{1}: open_cnt:{0}'.format(len(cls.openL), cls.m.TmIdx)]
+        if 'obj' in kwargs:  # 高级别对象生成时NEW，指定视角,更新到ML[-2]
+            cls.openL.append(new_center)
+
+            obj_L = cls.m.findList(kwargs['obj'], kwargs['level'])
+            obj = obj_L[kwargs['i']]
+            # obj is from Trend
+            st_idxL = list(range(obj.mp[0], len(cls.ML)-1))
+            if len(st_idxL) == 0:
+                # sth strange!!!
+                pass
+            elif len(st_idxL) == 1:
+                new_center.st_idxL = st_idxL
+                new_center.TmS, new_center.TmE = 0,0
+                new_center.L, new_center.H = 0,0
+            elif len(st_idxL) >= 2:
+                new_center.st_idxL = st_idxL
+                st1 = cls.ML[st_idxL+1]
+                new_center.TmS = st1.start.TmIdx
+                new_center.TmE = st1.peak.TmIdx
+                new_center.L = min(st1.start.V, st1.peak.V)
+                new_center.H = max(st1.start.V, st1.peak.V)
+                new_center.update(new_center.st_idxL[2:])
+  
+            new_center.remark = ['N1-{0}:TmS:{1},{2}'.format(cls.m.TmIdx,new_center.TmS, new_center.st_idxL)]
         
-        new_center.update(new_center.st_idxL[1:])
+        else:               # 链式更新NEW，指定待更新的[st]   # 与指定更新时 len >=2的处理相同
+            new_center.st_idxL = kwargs['st_idxL']
+            st1 = cls.ML[new_center.st_idxL[1]]
+            new_center.TmS = st1.start.TmIdx
+            new_center.TmE = st1.peak.TmIdx
+            new_center.H = max(st1.start.V, st1.peak.V)
+            new_center.L = min(st1.start.V, st1.peak.V)
+            new_center.update(new_center.st_idxL[2:])
+
+            new_center.remark = ['N2-{0}: TmS:{1},{2}'.format(cls.m.TmIdx,new_center.TmS, new_center.st_idxL)]
+        
+        
         return None
 
     def too_early(self):
