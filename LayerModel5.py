@@ -1081,9 +1081,14 @@ class CenterStrict(object):
 
             obj_L = cls.m.findList(kwargs['obj'], kwargs['level'])
             obj = obj_L[kwargs['i']]
-            # obj is from Trend
-            st_idxL = list(range(obj.mp[0], len(cls.ML)-1))
-            flag = 2
+            if kwargs['obj'] == 'st':
+                # obj is from Trend
+                st_idxL = list(range(obj.mp[0], len(cls.ML)-1))
+                flag = 2
+            elif kwargs['obj'] == 'pair':
+                # obj is from Pair_llv
+                st_idxL = list(range(obj.index[0], len(cls.ML)-1))
+                flag = 3
         elif 'st_idxL' in kwargs:
             st_idxL = kwargs['st_idxL']
             flag = 1
@@ -1313,6 +1318,8 @@ class PairChain(object):
         L = self.m.findList('pairchain', level) 
         L.append(self)
         self.cL = [[self.ML[0]], [], []]
+        self.regEvent()
+        self.regAction()
         
 
         if st_idx_list is not None:
@@ -1403,15 +1410,21 @@ class PairChain(object):
             Event(level=self.level, obj_name = self.sig_name, event_name=event_list[flag])
         return None
 
+    def regEvent(self):
+        for f in ['NEW', 'NEW_llv']:
+            dd = {'level_num': self.level,'obj_name': self.sig_name, 'event_name': f }
+            self.ef.regEvent(**dd)
+        return None
+
     def regAction(self): #初始化第1个对象时调用
         signal_methods = []
         signal_methods.append({
             'level_num': self.level,
             'obj_name': self.sig_name,
             'event_name': 'NEW_llv',
-            'obj_p': 'm.CLv'+str(int(self.level)-1)+'_L[0]',
+            'obj_p': 'm.CLv'+str(int(self.level))+'_L[0]',
             'method': 'newCenter',
-            'param': 'obj="st", level=' + str(int(self.level)) + ', i=-1'  ???
+            'param': 'obj="pair", level=' + str(int(self.level)) + ', i=-1'  
         })
         for m in signal_methods:
             self.ef.regAction(**m)

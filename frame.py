@@ -82,8 +82,13 @@ class EventFactory(object):
     def regEvent(cls, **kwargs):
         # exception: if signal has already existed
         if kwargs['level_num'] in list(range(len(cls.event_config))):
-            cls.event_config[kwargs['level_num']][kwargs['obj_name']] = \
+            if kwargs['obj_name'] in cls.event_config[kwargs['level_num']]:
+                cls.event_config[kwargs['level_num']][kwargs['obj_name']][kwargs['event_name']] = \
+                {'method': [], 'obj_p': [], 'param': []}
+            else:
+                cls.event_config[kwargs['level_num']][kwargs['obj_name']] = \
                 {kwargs['event_name']:{'method': [], 'obj_p': [], 'param': []}}
+
         return None
 
 
