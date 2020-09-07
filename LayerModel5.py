@@ -1305,6 +1305,7 @@ class Pair(object):
 
 class PairChain(object):
     m = Market()
+    ef = EventFactory()
     def __init__(self, level, sig_name, st_idx_list=None):
         self.level = level
         self.sig_name = sig_name
@@ -1341,7 +1342,7 @@ class PairChain(object):
             if new_flag == 0:
                 if len(self.cL[i]) == 0 or self.cL[i][-1].status == 1:
                    new_pair.chain_layer = i
-                   new_flag = 1
+                   new_flag = 1 + i
                    self.cL[i].append(new_pair)
 
                 elif self.cL[i][-1].status == 0:
@@ -1351,9 +1352,9 @@ class PairChain(object):
                     else: 
                         self.cL[i][-1].close()
                         new_pair.chain_layer = i
-                        new_flag = 1
+                        new_flag = 1 + i
                         self.cL[i].append(new_pair)
-            elif  new_flag == 1:
+            elif  new_flag >= 1:
                 if len(self.cL[i]) == 0 or self.cL[i][-1].status == 1:
                     break
                 elif self.cL[i][-1].status == 0:
@@ -1361,7 +1362,7 @@ class PairChain(object):
         if new_flag == 0:
             new_pair.remove(new_pair)
         else:
-            self.sendEvent()
+            self.sendEvent(new_flag)
         return None
 
     def updateLastSt(self):
@@ -1396,14 +1397,26 @@ class PairChain(object):
                     self.cL[i][-1].close()
         return None
 
-    def sendEvent(self):
-        Event(level=self.level, obj_name = self.sig_name, event_name='NEW')
+    def sendEvent(self, flag):
+        event_list = ['', 'NEW', 'NEW_llv']
+        if event_list[flag] != '':
+            Event(level=self.level, obj_name = self.sig_name, event_name=event_list[flag])
         return None
 
-    def regEvent(self):
-        kw = {'level_num':self.level, 'obj_name': self.sig_name, 'event_name':'NEW'}
-        EventFactory.regEvent(**kw)
+    def regAction(self): #初始化第1个对象时调用
+        signal_methods = []
+        signal_methods.append({
+            'level_num': self.level,
+            'obj_name': self.sig_name,
+            'event_name': 'NEW_llv',
+            'obj_p': 'm.CLv'+str(int(self.level)-1)+'_L[0]',
+            'method': 'newCenter',
+            'param': 'obj="st", level=' + str(int(self.level)) + ', i=-1'  ???
+        })
+        for m in signal_methods:
+            self.ef.regAction(**m)
         return None
+
 
 class PatternPair(object):
     # All pattern are based pair obj!!!!!
