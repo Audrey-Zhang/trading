@@ -104,7 +104,7 @@ class Singal(object):
         self.level = kwargs['level']
         if 'msg' in kwargs.keys():
             self.msg = kwargs['msg']
-        self.new_L.append(self)
+        self.new_L.append(self) #要
 
     @classmethod
     def updateTm(cls, time):

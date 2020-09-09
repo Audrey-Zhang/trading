@@ -450,6 +450,7 @@ class Trend(object):
         self.L.append(self)
 
         self.mp = kwargs['mp']
+        self.remark = []
 
         if method == 'init':
             # from P
@@ -474,8 +475,8 @@ class Trend(object):
     def update2(self):
         flag = 0
         treated = self
-        print('Lv{}.update2()_begin: flag:{}, treated.status:{},treated.mp:{}'.\
-                format(self.level, flag, treated.status, treated.mp))
+        self.remark.append('update2()_begin: flag:{}, treated.status:{},treated.mp:{}'.\
+                format(flag, treated.status, treated.mp))
         
         # Check ML to find new sticks   
         if len(self.ML) - self.mp[-1] > 1:
@@ -486,8 +487,8 @@ class Trend(object):
             treated.mp.append(i)
             #treated.updatePp(treated.stick_stack[-1])
             flag, treated = treated.update1Stick()
-            print('Lv{}.update2(): flag:{}, treated.status:{},treaded.drt:{},treated.mp:{}'.\
-                format(self.level, flag, treated.status, treated.drt, treated.mp))
+            self.remark.append('update2(): flag:{}, treated.status:{},treaded.drt:{},treated.mp:{}'.\
+                format(flag, treated.status, treated.drt, treated.mp))
         self.sendEvent(flag)  
         return flag
 
@@ -508,7 +509,7 @@ class Trend(object):
             
         elif self.status == 0: # 不需要以stick_stack的末尾进行更新; Trend currently is / or in 1st N or 1st flag; 
             if len(self.stick_stack) == 3: # stick_stack[-1]未完成，及时确认前2个st是否为pair
-                print('Lv{0}.update1st:status={1},mp:{3},{2.start},{2.peak},{2.end},{2.ES_stack}'\
+                self.remark.append('Lv{0}.update1st:status={1},mp:{3},{2.start},{2.peak},{2.end},{2.ES_stack}'\
                 .format(self.level, self.status, self, len(self.mp)))
                 if (self.stick_stack[1].peak.V - self.stick_stack[0].start.V)*self.drt < 0:
                     self.status = 2
@@ -539,7 +540,7 @@ class Trend(object):
                                 self.ES_stack.append(StdK(**tmp_stdk))
                                 flag = 1
                         elif tmp_stdk['H'] <= self.ES_stack[-1].H:  # case1：反向
-                            print('Lv{}.upd1st():case1, status:{}, mp:{},pp:{}'.\
+                            self.remark.append('Lv{}.upd1st():case1, status:{}, mp:{},pp:{}'.\
                                 format(self.level, self.status,self.mp, self.pp))
                             self.status = 2
                             new_trend = self.produceNewTrend(1) 
@@ -563,7 +564,7 @@ class Trend(object):
                                 self.ES_stack.append(StdK(**tmp_stdk))
                                 flag = 1
                         elif tmp_stdk['L'] >= self.ES_stack[-1].L:
-                            print('Lv{}.upd1st():case1, status:{}, mp:{},pp:{}'.\
+                            self.remark.append('Lv{}.upd1st():case1, status:{}, mp:{},pp:{}'.\
                                 format(self.level, self.status,self.mp, self.pp))
                             self.status = 2
                             new_trend = self.produceNewTrend(1)
@@ -572,7 +573,7 @@ class Trend(object):
                     elif (tmp_stdk['L'] >= self.ES_stack[-1].L and
                          tmp_stdk['H'] <= self.ES_stack[-1].H):
                         self.ES_stack[-1].H = tmp_stdk['H']
-                        # self.ES_stack[-1].merged += 1  # ！！！！
+                        ## self.ES_stack[-1].merged += 1  # ！！！！
                         flag = 0 
                     elif tmp_stdk['L'] < self.ES_stack[-1].L:
                         self.ES_stack.append(StdK(**tmp_stdk))
@@ -660,7 +661,7 @@ class Trend(object):
                 flag = 1
         elif st_idx_in_ss is not None: # check and update self.pp
             stick = self.stick_stack[st_idx_in_ss]
-            print('{}.updatedPeakP(st_idx_in_ss):last_st_start:{},peak{},drt:{}'.format(self.__class__.__name__,
+            self.remark.append('{}.updatedPeakP(st_idx_in_ss):last_st_start:{},peak{},drt:{}'.format(self.__class__.__name__,
                 stick, self.peak, self.drt))
    
             try:
@@ -677,13 +678,13 @@ class Trend(object):
                 if stick.drt == self.drt:
                     return flag
                 elif stick.start.is_peak(self.drt, self.peak):
-                    print('{}.updatedPeakP(st_idx_in_ss):FIND PEAK'.format(self.__class__.__name__))
+                    self.remark.append('{}.updatedPeakP(st_idx_in_ss):FIND PEAK'.format(self.__class__.__name__))
                     self.peak = stick.start
                     self.pp = self.stick_stack.index(stick)
                     flag = 1                
 
         return flag
-
+    '''
     def updatePp(self, st=None, time_index=None, pp=None):   # Unused!!!
         if time_index is not None:
             self.pp = self.findIdxInSS(time_index)
@@ -693,6 +694,7 @@ class Trend(object):
         else:
             self.pp = pp
         return None
+        '''
 
     def _updateStickStack(self):
         '''
@@ -742,7 +744,7 @@ class Trend(object):
         elif case == 1:
             #peak_point_in_stick_stack = self.findIdxInSS(self.ES_stack[-1].TmIdx)
             mp = self.mp[self.pp:]
-            print('Lv{}.produceNewTrend:case1, mp={}'.format(self.level,mp))
+            self.remark.append('Lv{}.produceNewTrend:case1, mp={}'.format(self.level,mp))
             #stick_stack = self.stick_stack[peak_point_in_stick_stack:]
             nt_dict = {'mp': mp,
                         'status': 1}
@@ -831,6 +833,7 @@ class Trend(object):
         new_trend.ML = cls.ML
 
         cls.L.append(new_trend)
+        new_trend.remark =[]
 
         new_trend.mp = kwargs['mp']
         new_trend.stick_stack = [new_trend.ML[i] for i in new_trend.mp]
@@ -844,18 +847,17 @@ class Trend(object):
         
         # from /
         if len(new_trend.stick_stack) == 2:
-            if 'pp' in kwargs.keys():
-                new_trend.pp = kwargs['pp']
-            new_trend.peak = Point.getPoint('end', new_trend.stick_stack[0])  
+            new_trend.peak = new_trend.stick_stack[0].peak  
             new_trend.ES_stack = [StdK(**new_trend.stickToStdK(new_trend.stick_stack[1]))]   
             new_trend.pp = 1       
+            new_trend.remark.append('newTrend_from_l-mp:{},pp:{}'.format(new_trend.mp, new_trend.pp))
         #from /\, N
         else:
             if 'pp' in kwargs.keys():
                 new_trend.pp = kwargs['pp']
                 new_trend.peak = Point.getPoint('start', new_trend.stick_stack[new_trend.pp])
             else:
-                new_trend.peak = Point.getPoint('end', new_trend.stick_stack[0])  
+                new_trend.peak = new_trend.stick_stack[0].peak  
                 for st_idx in list(range(1,len(new_trend.stick_stack))):
                     new_trend.updatePeakP(st_idx_in_ss=st_idx)
             new_trend.ES_stack = new_trend.reduceES(new_trend.stick_stack)
@@ -864,6 +866,7 @@ class Trend(object):
             
         return None
    
+    
     def reduceES(self, stick_stack_o, tail=1): 
         drt = stick_stack_o[0].drt
         stick_stack = stick_stack_o[:]
@@ -895,7 +898,8 @@ class Trend(object):
                 else:
                     ES_stack[-1].trimUpdate(self.stickToStdK(stick))
         return ES_stack
-    
+
+    '''
     def setPeak(self): #暂时没用
         # iterate ss to set peak point and pp in ss
         self.peak = Point.getPoint('end', self.stick_stack[0])
@@ -914,6 +918,7 @@ class Trend(object):
                     self.peak = Point.getPoint('end', self.stick_stack[pp])
                     self.peak_point_in_ss = pp + 1
         return None
+        '''
             
     
     def getSSPct(self):
@@ -944,17 +949,18 @@ class Trend(object):
         ll += list(amplitude)
         ll += list(amplitude[2:] / delta_tm)
         return ll
-
+    '''
     @classmethod 
     def findBigStick(cls, pct_spc): 
         v1, v2 = cls.L[-2].start.V, cls.L[-1].start.V
         pct = (v2 - v1)*cls.L[-2].drt / v1
-        print('Trend{}: v1:{:.2f}, v2:{:.2f}, drt:{}, pct:{:.2%}'.format(
+        self.remark.append('Trend{}: v1:{:.2f}, v2:{:.2f}, drt:{}, pct:{:.2%}'.format(
             cls.level, v1, v2, cls.L[-2].drt, pct))
         if pct > pct_spc:
             msg = {}
             Singal('BIGST', level=cls.level, msg = msg)
         return None
+        '''
 
     # ============================ Evaluation Method =====================================
     def amp(self):
@@ -1020,7 +1026,7 @@ class CenterStrict(object):
         
         # 待更新Stick List:
         if new_st_idx_list is None: # 把ML[-2]更新进去
-            if len(self.st_idxL) == 1:
+            if len(self.st_idxL) == 1 and self.st_idxL[0] < len(self.ML) - 2:
                 new_st_idx_list = list(range(self.st_idxL[0]+1, len(self.ML)-1))
             elif self.st_idxL[-1] < len(self.ML) - 2:
                 new_st_idx_list = list(range(self.st_idxL[-1]+1, len(self.ML)-1))
@@ -1088,6 +1094,8 @@ class CenterStrict(object):
             elif kwargs['obj'] == 'pair':
                 # obj is from Pair_llv
                 st_idxL = list(range(obj.index[0], len(cls.ML)-1))
+                if len(st_idxL) == 0: #因为pair更新比较快，先用ML[-1]新建Center, upd()会等有新的ML[-2]时再更新center.
+                    st_idxL = [obj.index[0]]
                 flag = 3
         elif 'st_idxL' in kwargs:
             st_idxL = kwargs['st_idxL']
@@ -1369,6 +1377,8 @@ class PairChain(object):
         if new_flag == 0:
             new_pair.remove(new_pair)
         else:
+            if new_flag > 2:
+                new_flag = 2
             self.sendEvent(new_flag)
         return None
 
@@ -1609,7 +1619,7 @@ class Signal001(object):
     L = []
     m = Market()
     ef = EventFactory()
-    type = '001'
+    sig_name = '001'
 
     def __init__(self):
         self.L.append(self)
@@ -1829,4 +1839,117 @@ class Signal001(object):
         for m in signal_methods:
             cls.ef.regAction(**m)
         return None
+
+class SIG_overlapMv(object):
+    m = Market()
+    ef = EventFactory()
+    sig_name = 'overlap_mv'
+    L =[]
+    Fremark =[]
+    
+    def __init__(self):
+        return None
+
+    @classmethod
+    def any_opp(cls, level):
+        stL = cls.m.findList('st', level)
+        if stL[-3].start.TmIdx not in [s.lv_TmS for s in cls.L[-3:]]: #Trend[-3]还没有信号
+            if not cls.almost_wiped(stL[-3].mp[0], level-1):
+                cls.any_opp2(stL[-3], level)
+        cls.any_opp2(stL[-2],level)
+        return None
+
+
+    @classmethod
+    def any_opp2(cls, st, level):
+        new_signal = {'level': level-1, 'TmIdx': cls.m.TmIdx, 'drt': st.drt, 'sigV':cls.m.dt[-1][3], 'lv_TmS':st.start.TmIdx, 'st_idx': st.mp[0]}
+
+        # is_overlap
+        flag = 0
+        
+        if st.pp == 1:
+            flag = 1
+        elif st.pp in [3,5]:
+            cnt_big = 0
+            cnt_small = 0
+            for st0 in st.stick_stack[:st.pp:2]:
+                if (st0.start.V - st0.peak.V)/(st.start.V - st.peak.V) > 0.85:
+                    cnt_big += 1
+                elif  (st0.start.V - st0.peak.V)/(st.start.V - st.peak.V) < 0.2:
+                    cnt_small += 1
+            for st0 in st.stick_stack[1:st.pp:2]:
+                if  (st0.peak.V - st0.start.V)/(st.start.V - st.peak.V) < 0.2:
+                    cnt_small += 1
+            if cnt_big == 1 and (cnt_big + cnt_small) == st.pp:
+                flag = 2
+
+        # is cross center
+        if flag < 1:
+            return False
+        ll = cls.m.findList('center', level-1)
+        centerL = []
+        for cc in ll[::-1]:
+            if cc.TmS < st.start.TmIdx <= cc.TmE:
+                centerL.append(cc)
+
+        if len(centerL) > 0:
+            compare_center = centerL[-1]
+        else:
+            cls.Fremark.append('len(centerL)=0:st{}'.format(st.start.TmIdx))
+            return False
+    
+        if len(compare_center.st_idxL) < 1 or st.mp[0] - compare_center.st_idxL[1] < 3:
+            cls.Fremark.append('cmp_center too young:st{}'.format(st.start.TmIdx))
+            return False
+        H, L = compare_center.H, compare_center.L
+        h, l = max(st.start.V, st.peak.V), min(st.start.V, st.peak.V)
+        if l > H or L > h:
+            cls.Fremark.append('Lv1 与center分离:st{}'.format(st.start.TmIdx))
+            return False
+        total = max(H, h) - min(L, l)
+        not_overlap = abs(H - h) + abs(L - l)
+        if not_overlap / total < 0.3:
+            new_signal['flag'] = flag
+            new_signal['remark'] = 'Lv1:pp{0}-{1}C:{2}'.format(st.mp[st.pp], st.drt,compare_center.st_idxL[0])
+            cls.newSig(**new_signal)
+            return True
+        cls.Fremark.append('Lv1 not cross center:st{0},H:{1},L:{2},h:{3},l:{4},total:{5},not_overlap:{6}'.format(st.start.TmIdx,H,L,h,l,total,not_overlap))
+
+        # filter almost-wiped big_move
+
+
+        return False
+
+    @classmethod
+    def almost_wiped(cls, st_idx, level):
+        # if any coming ST[:-1] wiped the st_idx of the level 
+        stL = cls.m.findList('st', level)
+        st = stL[st_idx]
+        st_half = (st.start.V + st.peak.V)/2
+        if st.drt == 1:
+            if min(*[st.start.V for st in [st_idx+2::2]]) < st_half:
+                return True
+        elif st.drt == -1:
+            if max(*[st.start.V for st in [st_idx+2::2]]) > st_half:
+                return True
+        return False
+    
+    @classmethod
+    def newSig(cls, **kwargs):
+        new_signal = cls.__new__(cls)
+        cls.L.append(new_signal)
+
+        new_signal.level = kwargs['level']
+        new_signal.TmInit = kwargs['TmIdx']
+        new_signal.drt = kwargs['drt']
+        new_signal.sigV = kwargs['sigV']
+        new_signal.score = kwargs['flag']
+        new_signal.remark = kwargs['remark']
+        new_signal.lv_TmS = kwargs['lv_TmS']
+        new_signal.st_idx = kwargs['st_idx']
+       
+
+
+
+        
 
