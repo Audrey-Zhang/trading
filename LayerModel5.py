@@ -1162,7 +1162,7 @@ class Pair(object):
         self.L.append(self)
 
         self.index = [st_idx]
-        self.chain_layer = -1
+        self.chain_layer = 0
         self.status = 0
 
         self.cc =''
@@ -1851,13 +1851,19 @@ class SIG_overlapMv(object):
         return None
 
     @classmethod
-    def any_opp(cls, level):
+    def any_opp(cls, level): # Search Lv[level]'s tail
         stL = cls.m.findList('st', level)
-        if stL[-3].start.TmIdx not in [s.lv_TmS for s in cls.L[-3:]]: #Trend[-3]还没有信号
-            if not cls.almost_wiped(stL[-3].mp[0], level-1):
-                cls.any_opp2(stL[-3], level)
-        cls.any_opp2(stL[-2],level)
+        if stL[-3].pp > 1:
+            pass
+        elif stL[-3].start.TmIdx not in [s.lv_TmS for s in cls.L[-3:]]: #Trend[-3]还没有信号
+            cls.any_opp2(stL[-3], level)
+            #if not cls.almost_wiped(stL[-3]):
+            #    cls.any_opp2(stL[-3], level)
+        cls.any_opp2(stL[-2], level)
+        #if not cls.almost_wiped(stL[-2]):
+        #   cls.any_opp2(stL[-2], level)
         return None
+
 
 
     @classmethod
@@ -1908,9 +1914,9 @@ class SIG_overlapMv(object):
             return False
         total = max(H, h) - min(L, l)
         not_overlap = abs(H - h) + abs(L - l)
-        if not_overlap / total < 0.3:
+        if not_overlap / total < 0.25:
             new_signal['flag'] = flag
-            new_signal['remark'] = 'Lv1:pp{0}-{1}C:{2}'.format(st.mp[st.pp], st.drt,compare_center.st_idxL[0])
+            new_signal['remark'] = '{}Lv1{},{},{},{},{},{} '.format(st.drt, st.start.TmIdx, not_overlap, total, not_overlap / total,[H,L,h,l],compare_center.TmS)
             cls.newSig(**new_signal)
             return True
         cls.Fremark.append('Lv1 not cross center:st{0},H:{1},L:{2},h:{3},l:{4},total:{5},not_overlap:{6}'.format(st.start.TmIdx,H,L,h,l,total,not_overlap))
@@ -1921,17 +1927,23 @@ class SIG_overlapMv(object):
         return False
 
     @classmethod
-    def almost_wiped(cls, st_idx, level):
-        # if any coming ST[:-1] wiped the st_idx of the level 
-        stL = cls.m.findList('st', level)
-        st = stL[st_idx]
+    def almost_wiped(cls, st):
+        # if any coming ST0[:-1] wiped the st1
         st_half = (st.start.V + st.peak.V)/2
-        if st.drt == 1:
-            if min(*[st.start.V for st in [st_idx+2::2]]) < st_half:
+        threshold = st_half
+
+        if (cls.m.dt[-1][3] - threshold) * st.drt < 0: 
+            cls.Fremark.append('st[{}] wiped: crt_k wipe st1 half'.format(st.start.TmIdx))
+            return True
+
+        st0_L = cls.m.findList('st', st.level - 1)[st.mp[st.pp]:]
+        
+        for st0 in st0_L:
+            if (st0.start.V - threshold) * st.drt < 0  or (st0.peak.V - threshold) * st.drt < 0:
+                cls.Fremark.append('st[{}] wiped:st0{} wipe st1 half'.format(st.start.TmIdx, st0.start.TmIdx))
                 return True
-        elif st.drt == -1:
-            if max(*[st.start.V for st in [st_idx+2::2]]) > st_half:
-                return True
+
+        cls.Fremark.append('st[{},half{}] not wiped:st0L_start{}'.format(st.start.TmIdx, threshold, st0_L[0].start.TmIdx))
         return False
     
     @classmethod
