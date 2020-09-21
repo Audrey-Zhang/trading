@@ -116,7 +116,8 @@ class Singal(object):
 
 class Market(object):
     dt = []
-    def __init__(self, level_cnt=4):
+    def __init__(self, stockID, level_cnt=4):
+        self.stockID = stockID
         self.layer = level_cnt
         self.TmIdx = 0
         obj_name_list = ['Lv', 'PLv', 'PCLv', 'MPLv','PT01Lv','CLv']

@@ -1840,6 +1840,7 @@ class Signal001(object):
             cls.ef.regAction(**m)
         return None
 
+
 class SIG_overlapMv(object):
     m = Market()
     ef = EventFactory()
@@ -1848,6 +1849,7 @@ class SIG_overlapMv(object):
     Fremark =[]
     
     def __init__(self):
+        self.resetL()
         return None
 
     @classmethod
@@ -1951,6 +1953,7 @@ class SIG_overlapMv(object):
         new_signal = cls.__new__(cls)
         cls.L.append(new_signal)
 
+        new_signal.stockID = cls.m.stockID
         new_signal.level = kwargs['level']
         new_signal.TmInit = kwargs['TmIdx']
         new_signal.drt = kwargs['drt']
@@ -1960,6 +1963,9 @@ class SIG_overlapMv(object):
         new_signal.lv_TmS = kwargs['lv_TmS']
         new_signal.st_idx = kwargs['st_idx']
        
+    @classmethod
+    def resetL(cls):
+        cls.L = []
 
 
 
