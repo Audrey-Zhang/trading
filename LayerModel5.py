@@ -141,8 +141,10 @@ class NodeVisitor:
         return self.evaluate(node.left) <= self.evaluate(node.right)
 
 class Point:
+    obj_L = []
     def __init__(self, time_index, value, drt):
         self.TmIdx, self.V, self.drt = time_index, value, drt
+        self.obj_L.append(self)
         
     def __repr__(self):
         return 'Point({0.TmIdx!r}, {0.V!r}, {0.drt!r})'.format(self)
@@ -220,6 +222,7 @@ class Point:
             return False
         
 class StdK:
+    obj_L = []
     def __init__(self, **kwargs):
         self.drt = kwargs['drt']
         if 'k_bar' in kwargs.keys():
@@ -228,6 +231,7 @@ class StdK:
             self.H, self.L, self.TmIdx = kwargs['H'], kwargs['L'], kwargs['TmIdx']
         self.merged = 1
         # self.range = None  # for ES, trend_drt==1 ~ rangeL, trend_drt==-1 ~ rangeH
+        self.obj_L.append(self)
     
     def __repr__(self):
         return 'StdK({0.TmIdx}, {0.H}, {0.L}, {0.drt})'.format(self)
@@ -265,6 +269,7 @@ class Stick(object):
     m = {'1': ['L', 'H', 'H'], '-1':['H', 'L', 'L']}
     level = 0
     mm = Market()
+    remark = []
     def __init__(self, method, **kwargs):
         self.L.append(self)
         if method == 'init':
@@ -1499,8 +1504,8 @@ class PatternPair(object):
         
         if window_w is None:
             window_w = self.window_w
-        print('test:PP.cursor()__start_cursor:{},layer_chain:{},w:{}'.\
-            format(start_cursor,self.chain_layer, window_w))
+        #print('test:PP.cursor()__start_cursor:{},layer_chain:{},w:{}'.\
+        #    format(start_cursor,self.chain_layer, window_w))
         cursor_list = [start_cursor]
         flag = False
         while len(cursor_list) < (window_w):
@@ -1647,7 +1652,7 @@ class Signal001(object):
         flag = 0
 
         if self.not_prepared():
-            print('Not Prepared!!!!')
+            #print('Not Prepared!!!!')
             return flag 
 
         for i in list(range(self.m.layer))[::-1]:
@@ -1691,9 +1696,9 @@ class Signal001(object):
 
                 if con1*con2 != 0 and con3:
                     flag = 1
-                    print('New SIG!!!')                    
+                    #print('New SIG!!!')                    
                     self.newSignal(**new_dict)
-                    print(con3)
+                    #print(con3)
 
                     
 
@@ -1718,7 +1723,7 @@ class Signal001(object):
     def is_puncture(HL_limit, LP_L):  # 穿刺
         flag = 0
         peak = LP_L[-1].P
-        print('是否穿刺：p:{0},HL:{1}'.format(peak,HL_limit))
+        #print('是否穿刺：p:{0},HL:{1}'.format(peak,HL_limit))
         if peak > max(HL_limit):
             drt = 1
             flag = 1
@@ -1923,9 +1928,106 @@ class SIG_overlapMv(object):
             return True
         cls.Fremark.append('Lv1 not cross center:st{0},H:{1},L:{2},h:{3},l:{4},total:{5},not_overlap:{6}'.format(st.start.TmIdx,H,L,h,l,total,not_overlap))
 
-        # filter almost-wiped big_move
+
+        return False
+
+    @classmethod
+    def almost_wiped(cls, st):
+        # if any coming ST0[:-1] wiped the st1
+        st_half = (st.start.V + st.peak.V)/2
+        threshold = st_half
+
+        if (cls.m.dt[-1][3] - threshold) * st.drt < 0: 
+            cls.Fremark.append('st[{}] wiped: crt_k wipe st1 half'.format(st.start.TmIdx))
+            return True
+
+        st0_L = cls.m.findList('st', st.level - 1)[st.mp[st.pp]:]
+        
+        for st0 in st0_L:
+            if (st0.start.V - threshold) * st.drt < 0  or (st0.peak.V - threshold) * st.drt < 0:
+                cls.Fremark.append('st[{}] wiped:st0{} wipe st1 half'.format(st.start.TmIdx, st0.start.TmIdx))
+                return True
+
+        cls.Fremark.append('st[{},half{}] not wiped:st0L_start{}'.format(st.start.TmIdx, threshold, st0_L[0].start.TmIdx))
+        return False
+    
+    @classmethod
+    def newSig(cls, **kwargs):
+        new_signal = cls.__new__(cls)
+        cls.L.append(new_signal)
+
+        new_signal.stockID = cls.m.stockID
+        new_signal.level = kwargs['level']
+        new_signal.TmInit = kwargs['TmIdx']
+        new_signal.drt = kwargs['drt']
+        new_signal.sigV = kwargs['sigV']
+        new_signal.score = kwargs['flag']
+        new_signal.remark = kwargs['remark']
+        new_signal.lv_TmS = kwargs['lv_TmS']
+        new_signal.st_idx = kwargs['st_idx']
+       
+    @classmethod
+    def resetL(cls):
+        cls.L = []
 
 
+class SIG_overlap(object):
+    m = Market()
+    ef = EventFactory()
+    sig_name = 'overlap'
+    L =[]
+    Fremark =[]
+    
+    def __init__(self):
+        self.resetL()
+        return None
+
+    @classmethod
+    def any_opp(cls, level): # Search Lv[level]'s tail
+        stL = cls.m.findList('st', level)
+        if stL[-3].pp > 1:
+            pass
+        elif stL[-3].start.TmIdx not in [s.lv_TmS for s in cls.L[-3:]]: #Trend[-3]还没有信号
+            cls.any_opp2(stL[-3], level)
+            #if not cls.almost_wiped(stL[-3]):
+            #    cls.any_opp2(stL[-3], level)
+        cls.any_opp2(stL[-2], level)
+        #if not cls.almost_wiped(stL[-2]):
+        #   cls.any_opp2(stL[-2], level)
+        return None
+
+
+
+    @classmethod
+    def any_opp2(cls, st, level):
+        new_signal = {'level': level-1, 'TmIdx': cls.m.TmIdx, 'drt': st.drt, 'sigV':cls.m.dt[-1][3], 'lv_TmS':st.start.TmIdx, 'st_idx': st.mp[0]}
+
+        # is_overlap
+        flag = 0
+        
+        if st.pp == 1:
+            flag = 1
+        elif st.pp in [3,5]:
+            cnt_big = 0
+            cnt_small = 0
+            for st0 in st.stick_stack[:st.pp:2]:
+                if (st0.start.V - st0.peak.V)/(st.start.V - st.peak.V) > 0.80:
+                    cnt_big += 1
+                elif  (st0.start.V - st0.peak.V)/(st.start.V - st.peak.V) < 0.25:
+                    cnt_small += 1
+            for st0 in st.stick_stack[1:st.pp:2]:
+                if  (st0.peak.V - st0.start.V)/(st.start.V - st.peak.V) < 0.25:
+                    cnt_small += 1
+            if cnt_big == 1 and (cnt_big + cnt_small) == st.pp:
+                flag = 2
+
+        
+        if flag > 0:
+            new_signal['flag'] = flag
+            new_signal['remark'] = '{}Lv{}_{}'.format(st.drt,st.level, st.start.TmIdx)
+            cls.newSig(**new_signal)
+            return True
+        
         return False
 
     @classmethod

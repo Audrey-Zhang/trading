@@ -3,6 +3,7 @@ import numpy as np
 
 class Event(object):
     L = [[]*3]
+    remark = []
     def __init__(self, **kwargs):
         # essential param
         
@@ -37,7 +38,7 @@ class EventFactory(object):
     def play(self, event):
         
         func_list =[]
-        print(event)
+        #print(event)
         objs = self.event_config[event.level_num][event.obj_name][event.event_name]['obj_p']
         methods = self.event_config[event.level_num][event.obj_name][event.event_name]['method']
         params = self.event_config[event.level_num][event.obj_name][event.event_name]['param']
@@ -46,6 +47,7 @@ class EventFactory(object):
             if obj + m + p == '':
                 func_str = ''
             func_list.append(func_str)
+
             
         event.remove_event()
         return func_list
@@ -91,10 +93,6 @@ class EventFactory(object):
 
         return None
 
-
-
-    
-
 class Singal(object):
     L = []
     new_L = []
@@ -116,7 +114,8 @@ class Singal(object):
 
 class Market(object):
     dt = []
-    def __init__(self, stockID, level_cnt=4):
+    remark = []
+    def __init__(self, stockID='', level_cnt=4):
         self.stockID = stockID
         self.layer = level_cnt
         self.TmIdx = 0
@@ -128,11 +127,12 @@ class Market(object):
                 exec('self.' + obj+str(i)+'_L = []') 
                 exec('self.obj_list[obj_name['+str(j)+']]['+str(i)+'] = self.' + obj+str(i)+'_L')
         self.SIG_L = []
-        self.CenterStrict_LD = {}
+        #self.CenterStrict_LD = {}
         self.position = []
 
         self.bin_cnt = 20
-        
+
+        self.clear()        
 
     def update(self, data_k):
         self.dt.append(data_k)
@@ -141,6 +141,15 @@ class Market(object):
     def findList(self, name, level):
         return self.obj_list[name][level]
 
+    def get_day(self, TmIdx):
+        tm =self.dt[TmIdx][5]
+        day =tm.strftime('%Y-%m-%d')
+        return day
+
+    @classmethod
+    def clear(cls):
+        cls.remark.clear()
+        cls.dt.clear()
     # ======================= Private ==============================================
     
 
