@@ -22,6 +22,7 @@ class Running(object):
         PairChain.m = self.m
         PairChain.ef = self.ef
         CenterStrict.m = self.m
+        CenterStrict.ef = self.ef
     
         Stick.remark = []
 
@@ -85,7 +86,6 @@ class Running(object):
             
             for i in list(range(layer)):
                 if len(Event.L[i]) > 0:
-                    #print('TmIdx:{},[{}]'.format(k[4],[x for x in Event.L[i]]))
                     for event in Event.L[i][:]:
                         actions = self.ef.play(event)
                         for a in actions:

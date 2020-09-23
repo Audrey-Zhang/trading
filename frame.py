@@ -150,10 +150,45 @@ class Market(object):
     def clear(cls):
         cls.remark.clear()
         cls.dt.clear()
-    # ======================= Private ==============================================
     
-
     # ===================== Global calculation method ==============================
+    # st_settle: Input: st_idxL;  Ouput: 从起始点开始是否settle, settle_length
+    # ccHL
+    # ==============================================================================
+
+    def st_settle(self, st_idxL, st_level): 
+        remark = []
+        if len(st_idxL) < 3:
+            remark.append('center.stL < 3')
+            return 0,0,''
+
+        ss, flag, settle_length = 0, 0, 0        
+
+        ml = self.findList('st', st_level)
+        stL = [ml[i] for i in st_idxL]
+        
+
+            
+        for i,st in enumerate(stL):
+            j = max(3, i+1)
+            H = max([st.start.V for st in stL[:j]])
+            L = min([st.start.V for st in stL[:j]])
+            st_pct = abs(st.start.V - st.peak.V) / (H - L)
+            ss += st_pct
+            if ss / (i+1) > 1:
+                remark.append('Error: start or peak of st is wrong, so the pct > 1')
+            if ss / (i+1) > 0.6:                
+                settle_length = i + 1
+            elif i + 1 > 7:
+                break
+            else:
+                remark.append('pct<thread:{},{},{},{},{},{}'.format(len(stL), ss, i+1, H-L, st_pct, ss / (i+1)))
+                break
+        if settle_length >= 3:
+            flag = 1
+        return flag, settle_length, remark
+
+    
     def ccHL(self, his, spec = 0.7):
         scale = his[0]
         distr = his[1]

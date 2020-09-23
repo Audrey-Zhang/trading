@@ -982,6 +982,7 @@ class CenterStrict(object):
     ML = []
     level = -1
     openL =[]
+    ef = EventFactory()
     def __init__(self, level=0, stS_idx=None):
         if stS_idx is None:  # 起点对象
             self.L.append(self)
@@ -991,6 +992,8 @@ class CenterStrict(object):
             self.TmS, self.TmE = 0,0            
             self.L, self.H = 0,0
             self.remark = ['init-{}'.format(self.TmS)]
+
+            self.regEvent()
             
         #else: 
         #    self.L.append(self)
@@ -1044,7 +1047,7 @@ class CenterStrict(object):
         for st_idx in new_st_idx_list:
             flag = self.update1Stick(st_idx)
             if flag == 2:
-                self.is_main = 10
+                self.is_main += 10
                 i = new_st_idx_list.index(st_idx)
                 if i == 0:
                     st_L = [st_idx - 1] + new_st_idx_list
@@ -1053,10 +1056,11 @@ class CenterStrict(object):
                 self.remark.append('Upd-{2}:i:{0},{1},{3}'.format(i, new_st_idx_list, self.m.TmIdx, st_L))
                 new_center ={'st_idxL': st_L, 'flag':flag}
                 self.newCenter(**new_center)
+                self.sendEvent(flag)
                 break                   
         return flag
 
-    def update1Stick(self, st_idx): # Return: flag  2:NEW 0:else 
+    def update1Stick(self, st_idx): # Return: flag  2:NEW10 0:else 
         flag = 0
         st = self.ML[st_idx]
         
@@ -1104,6 +1108,7 @@ class CenterStrict(object):
                 flag = 3
         elif 'st_idxL' in kwargs:
             st_idxL = kwargs['st_idxL']
+            new_center.is_main = 5
             flag = 1
 
         # 更新newCenter:
@@ -1147,6 +1152,18 @@ class CenterStrict(object):
         st = self.ML[st_idx]
         self.H = max(self.H, st.start.V, st.peak.V)
         self.L = min(self.L, st.start.V, st.peak.V)
+        return None
+
+    def sendEvent(self, flag):
+        event_list = ['','', 'NEW10', 'NEW']
+        if event_list[flag] != '':
+            Event(level=self.level, obj_name = self.__class__.__name__, event_name=event_list[flag])
+        return None
+
+    def regEvent(self):
+        for f in ['NEW10']:
+            dd = {'level_num': self.level,'obj_name': self.__class__.__name__, 'event_name': f }
+            self.ef.regEvent(**dd)
         return None
 
 
@@ -2068,8 +2085,116 @@ class SIG_overlap(object):
     @classmethod
     def resetL(cls):
         cls.L = []
+        cls.remark = []
 
 
+class SIG_CCrawl(object):
+    m = Market()
+    ef = EventFactory()
+    sig_name = 'CCrawl'
+    L =[]
+    remark =[]
+    
+    def __init__(self, levelL):
+        self.level = -1
+        self.drt = 0
+        self.status = 0
+        self.TmS = 0
+        self.center = ''
+        self.TmIdx = 0
 
+        self.regAction(levelL)
+        self.resetL()
+        return None
+
+    @classmethod
+    def any_opp(cls, level):  # hook: Center_NEW10,  reg by running init
+        for cc in cls.m.findList('center', level)[::-1]:
+            if cc.is_main == 5:
+                center_crt = cc
+                break
+        cls.remark.append('plus{} any opp: cc_st_idx{}'.format(cls.m.findList('st', level)[center_crt.st_idxL[0]].start.TmIdx, center_crt.st_idxL))
         
+        i = center_crt.st_idxL[0]
+        st_plus = cls.m.findList('st', level)[i]
+        st_A = abs(st_plus.start.V - st_plus.peak.V)
+        cls.remark.append('st_plus_idx:{}, st_A:{}'.format(i, st_A))
 
+        stL_prev = cls.m.findList('st', level)[i-1:i-5:-1]
+        H = max([st.peak.V for st in stL_prev])
+        L = min([st.peak.V for st in stL_prev])
+        stL_A = H - L
+        
+        con = st_A / stL_A
+        cls.remark.append('stL_prev:{}, stL_A:{}, pct:{}'.format(stL_prev, stL_A, con))
+
+
+        if con < 2.5:
+            # new SIG
+            drt = cls.m.findList('st', level)[center_crt.st_idxL[0]].start.drt
+            TmS = cls.m.findList('st', level)[center_crt.st_idxL[0]].peak.TmIdx
+            new_signal = {'level': level, 'drt': drt, 'status':0, 'TmS':TmS, 'center': center_crt,'TmIdx': cls.m.TmIdx}
+            cls.newSig(**new_signal)
+
+        return None
+
+    @classmethod
+    def established(cls): # 暂时只链式更新最后一个
+        if len(cls.L) > 0:
+            cls.L[-1].established2()
+
+
+    def established2(self): #hook: Trend_NEW  reg by @classmethod
+        if self.status != 0:
+            return None
+        if len(self.center.st_idxL) < 4:
+            return None
+        flag, _settle_length, rr = self.m.st_settle(self.center.st_idxL[1:], self.level) 
+        self.remark.append('ESTA:cc{}:{},{}'.format(self.TmS, self.center.st_idxL, rr))
+        if flag == 1 and self.status == 0:
+            self.status = 1
+        return None
+    
+    def following(self):
+
+        return None
+
+    @classmethod
+    def newSig(cls, **kwargs):
+        new_signal = cls.__new__(cls)
+        cls.L.append(new_signal)
+
+        new_signal.level = kwargs['level']
+        new_signal.drt = kwargs['drt']
+        new_signal.status = kwargs['status']
+        new_signal.TmS = kwargs['TmS']
+        new_signal.center = kwargs['center']
+        new_signal.TmIdx = kwargs['TmIdx']
+
+    @classmethod
+    def regAction(cls, levelL):
+        signal_methods = []
+        for level in levelL:
+            if level == 0:
+                obj_name = 'Stick'
+            else:
+                obj_name = 'TrendLv' + str(int(level))
+            
+            signal_methods.append({
+                'level_num': level,
+                'obj_name': obj_name,
+                'event_name': 'NEW',
+                'obj_p': 'SIG_CCrawl',
+                'method': 'established',
+                'param': ''
+            })
+
+        for m in signal_methods:
+            cls.ef.regAction(**m)
+        return None
+
+
+    @classmethod
+    def resetL(cls):
+        cls.L = []
+        cls.remark = []
