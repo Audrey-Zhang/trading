@@ -143,7 +143,7 @@ class Market(object):
 
     def get_day(self, TmIdx):
         tm =self.dt[TmIdx][5]
-        day =tm.strftime('%Y-%m-%d')
+        day =tm.strftime('%Y-%m-%d %H')
         return day
 
     @classmethod
@@ -159,7 +159,6 @@ class Market(object):
     def st_settle(self, st_idxL, st_level): 
         remark = []
         if len(st_idxL) < 3:
-            remark.append('center.stL < 3')
             return 0,0,''
 
         ss, flag, settle_length = 0, 0, 0        
@@ -175,15 +174,13 @@ class Market(object):
             L = min([st.start.V for st in stL[:j]])
             st_pct = abs(st.start.V - st.peak.V) / (H - L)
             ss += st_pct
-            if ss / (i+1) > 1:
-                remark.append('Error: start or peak of st is wrong, so the pct > 1')
             if ss / (i+1) > 0.6:                
                 settle_length = i + 1
             elif i + 1 > 7:
                 break
             else:
-                remark.append('pct<thread:{},{},{},{},{},{}'.format(len(stL), ss, i+1, H-L, st_pct, ss / (i+1)))
-                break
+                if i > 2:
+                    break
         if settle_length >= 3:
             flag = 1
         return flag, settle_length, remark

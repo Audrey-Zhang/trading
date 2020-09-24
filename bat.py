@@ -8,7 +8,7 @@ from LayerModel5 import *
 from frame import *
 
 class Running(object):
-    filepath = 'e:\Work_python\\trading\\trading\event_config.json'
+    filepath = 'event_config.json'
     ef = EventFactory(filepath)
 
     def __init__(self, stockID, dt):
@@ -66,8 +66,19 @@ class Running(object):
                     'obj_p': 'SIG_overlap',
                     'method': 'any_opp',
                     'param': str(level)  })
+
+        SIG_CCrawl.m, SIG_CCrawl.ef = self.m, self.ef
+        SIG_CCrawl([2])
+        
+        level = 2
+        actions.append({ 'level_num': level, 
+                    'obj_name': 'Center' +str(int(level)),
+                    'event_name': 'NEW10',
+                    'obj_p': 'SIG_CCrawl',
+                    'method': 'any_opp',
+                    'param': str(level)  })
         for ac in actions:
-            self.ef.regAction(**ac)
+            self.ef.regAction(**ac)      
  
         layer = self.m.layer
         m = self.m
@@ -76,7 +87,7 @@ class Running(object):
         #filepath = 'event_config.json'
         #ef = EventFactory(filepath)
         
-        
+        self.m.update(self.dt[0])
         for k in self.dt[1:]:
             self.m.update(k)
             Stick.L[-1].update(k)  
@@ -89,20 +100,23 @@ class Running(object):
                     for event in Event.L[i][:]:
                         actions = self.ef.play(event)
                         for a in actions:
-                            self.m.remark.append('{}:{},st0:{}, st1:{}'.format(self.m.TmIdx, a, len(m.findList('st',0)),  len(m.findList('st',1))))
                             if a != '':
                                 eval(a)
                                 
-            
-        print([sig.remark for sig in SIG_overlap.L])
-        print(len(self.m.findList('st', 3)))
-        
-       
-        return self.m.remark
+        #del PairChainLv0, PairChainLv1, PairChainLv2, PairChainLv3
+        return None
+
+    @classmethod
+    def save_sig(cls):
+        print([[sig.drt, sig.TmS, sig.status] for sig in SIG_CCrawl.L])
+        dd = [[sig.ID, sig.drt, sig.TmS, sig.status, sig.open_tm] for sig in SIG_CCrawl.L]
+        df = pd.DataFrame(dd, columns=['ID', 'drt', 'TmS', 'status','open_tm'])
+        df.to_excel('xxx.xlsx')
+
+        return None
 
     def reset_market(self):
         self.dt = []
-        SIG_overlap.L = []
         for key in self.m.__dict__:
             if key[-2:] =='_L':
                 ll = self.m.__dict__[key]
@@ -110,7 +124,8 @@ class Running(object):
                     del self.m.__dict__[key][i]
         for i in range(len(StdK.obj_L))[::-1]:
             del StdK.obj_L[i]
-        for i in range(len(Point.obj_L))[::-1]:
-            del Point.obj_L[i]
+        for i in range(len(Point.L))[::-1]:
+            del Point.L[i]
+               
         gc.collect()
         return None
